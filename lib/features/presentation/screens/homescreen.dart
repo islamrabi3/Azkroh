@@ -1,10 +1,6 @@
-import 'dart:math';
-
-import 'package:admob_flutter/admob_flutter.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/constance/constance.dart';
 import 'package:azkroh_app/features/core/methods/methods.dart';
-import 'package:azkroh_app/features/core/youtube_links.dart';
 
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
@@ -14,11 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
-
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-// import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-
-import '../../core/admob.dart';
 
 import 'dart:ui' as UI;
 
@@ -64,40 +55,18 @@ class HomePageScreen extends StatefulWidget {
 }
 
 class _HomePageScreenState extends State<HomePageScreen> {
-  int randomIndex = Random().nextInt(youTubeLinksList.length);
-  final YoutubePlayerController _controller = YoutubePlayerController(
-    initialVideoId: youTubeLinksList[Random().nextInt(youTubeLinksList.length)],
-    flags: const YoutubePlayerFlags(
-      autoPlay: false,
-      mute: false,
-      showLiveFullscreenButton: true,
-      loop: true,
-    ),
-  );
+  // int randomIndex = Random().nextInt(youTubeLinksList.length);
+  // final YoutubePlayerController _controller = YoutubePlayerController(
+  //   initialVideoId: youTubeLinksList[Random().nextInt(youTubeLinksList.length)],
+  //   flags: const YoutubePlayerFlags(
+  //     autoPlay: false,
+  //     mute: false,
+  //     showLiveFullscreenButton: true,
+  //     loop: true,
+  //   ),
+  // );
 
   // AdmobBannerSize? _admobBannerSize;
-  AdmobInterstitial? _admobInterstitial;
-
-  @override
-  void initState() {
-    super.initState();
-    _admobInterstitial = AdmobInterstitial(
-      adUnitId: AdMobClass.fullScreenAdUnit,
-      listener: (p0, p1) {
-        if (p0 == AdmobAdEvent.closed) _admobInterstitial!.load();
-      },
-    );
-
-    _admobInterstitial!.load();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-
-    _admobInterstitial!.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +82,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
           textDirection: direction,
           child: Scaffold(
             body: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
                   Stack(
@@ -255,32 +223,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                           ))
                     ],
                   ),
-                  Text(
-                    'حلقات تعليمية',
-                    style: AppStyle.regularTextStyle.copyWith(fontSize: 20.0),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(25.0),
-                      child: YoutubePlayer(
-                        // aspectRatio: 1/.04,
-                        controller: _controller,
-                        showVideoProgressIndicator: true,
-                        onEnded: (metaData) {
-                          _controller.reload();
-                        },
-                        controlsTimeOut: const Duration(seconds: 5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 70.0,
-                  ),
-                  AdmobBanner(
-                    adUnitId: AdMobClass.bannerAdUnit,
-                    adSize: AdmobBannerSize.SMART_BANNER(context),
-                  )
                 ],
               ),
             ),

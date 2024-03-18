@@ -1,7 +1,7 @@
-import 'package:admob_flutter/admob_flutter.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/cacheHelper.dart';
 import 'package:azkroh_app/features/core/methods/get_location.dart';
+import 'package:azkroh_app/features/core/methods/hive_helper.dart';
 import 'package:azkroh_app/features/presentation/cubit/bloc_observer.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/screens/splash_screen.dart';
@@ -9,9 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'features/core/doaa_model.dart';
-import 'features/domain/entity/quran_entity.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,15 +23,10 @@ void main() async {
   await Hive.initFlutter(document.path);
 
   //Hive adapter
-  Hive.registerAdapter(DoaaModelAdapter());
-  Hive.registerAdapter(QuranEntityAdapter());
-  Hive.registerAdapter(QuranDataEntityAdapter());
-  Hive.registerAdapter(SuraEntityAdapter());
-  Hive.registerAdapter(AyahEntityAdapter());
+  HiveHelper.registerHiveMethod();
 
   // adMob initializatoin
 
-  Admob.initialize();
   Bloc.observer = MyBlocObserver();
   runApp(const MyApp());
   //Hive Open Boxes
