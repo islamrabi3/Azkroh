@@ -4,6 +4,7 @@ import 'package:azkroh_app/features/core/methods/get_location.dart';
 import 'package:azkroh_app/features/core/methods/hive_helper.dart';
 import 'package:azkroh_app/features/presentation/cubit/bloc_observer.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
+import 'package:azkroh_app/features/presentation/screens/homescreen.dart';
 import 'package:azkroh_app/features/presentation/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -61,6 +62,9 @@ class MyApp extends StatelessWidget {
             ),
             appBarTheme: AppBarTheme(
               centerTitle: true,
+              iconTheme: IconThemeData(
+                color: Colors.white,
+              ),
               titleTextStyle: AppStyle.regularTextStyle
                   .copyWith(color: Colors.white, fontSize: 25.0),
               elevation: 10.0,
@@ -70,7 +74,7 @@ class MyApp extends StatelessWidget {
             ),
             primarySwatch: Colors.blue,
           ),
-          home: const SplashScreen(),
+          home: const HomePageScreen(),
         ));
   }
 }

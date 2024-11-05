@@ -13,6 +13,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'dart:ui' as UI;
 
+import '../../core/methods/get_location.dart';
+
 UI.TextDirection direction = UI.TextDirection.rtl;
 
 List<Map<String, dynamic>> azkarCategoires = [
@@ -67,7 +69,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
   // );
 
   // AdmobBannerSize? _admobBannerSize;
-
+ @override
+  void initState() {
+    super.initState();
+    LocationHelper.getLocationMethod();
+  }
   @override
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
@@ -107,13 +113,13 @@ class _HomePageScreenState extends State<HomePageScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                headersComponent('دعاء اليوم '),
-                                // we need to put random verse from API instead.
-                                defaultZekrHeaderContainer(
-                                    text: 'رب زدني علما',
-                                    height: height,
-                                    width: width),
-                                const Divider(thickness: 2.0),
+                                // headersComponent('دعاء اليوم '),
+                                // // we need to put random verse from API instead.
+                                // defaultZekrHeaderContainer(
+                                //     text: 'رب زدني علما',
+                                //     height: height,
+                                //     width: width),
+                                // const Divider(thickness: 2.0),
                                 headersComponent('الأذكار '),
                                 customHorizontalListView(
                                     ctx: context,
@@ -234,7 +240,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       fromSharedList: fromSharedList,
                     ));
               },
-              child: const Icon(Icons.favorite_border),
+              child: const Icon(Icons.favorite_border, color: Colors.white,),
             ),
           ),
         );
