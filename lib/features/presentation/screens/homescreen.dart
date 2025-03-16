@@ -232,16 +232,16 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 ],
               ),
             ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                navigateTo(
-                    context,
-                    FavoritesScreen(
-                      fromSharedList: fromSharedList,
-                    ));
-              },
-              child: const Icon(Icons.favorite_border, color: Colors.white,),
-            ),
+            // floatingActionButton: FloatingActionButton(
+            //   onPressed: () {
+            //     navigateTo(
+            //         context,
+            //         FavoritesScreen(
+            //           fromSharedList: fromSharedList,
+            //         ));
+            //   },
+            //   child: const Icon(Icons.favorite_border, color: Colors.white,),
+            // ),
           ),
         );
       },

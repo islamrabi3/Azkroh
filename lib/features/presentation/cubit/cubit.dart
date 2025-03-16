@@ -24,6 +24,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/methods/get_location.dart';
+import '../screens/quran_screen_locally/quran_screen_locally.dart';
 
 class AppCubit extends Cubit<Appstates> {
   AppCubit() : super(AppInitState());
@@ -72,7 +73,7 @@ class AppCubit extends Cubit<Appstates> {
   int sebhaCount = 0;
 
   List<Widget> screens = [
-    const QuranScreen(),
+     SurahListScreen(),
     Sebha(),
     const PrayerScreen(),
     const RadioScreen(),
@@ -118,23 +119,23 @@ class AppCubit extends Cubit<Appstates> {
   QuranEntity? quranEntity;
   List<AyahEntity>? ayahList;
 
-  getQuranDataTest() {
-    try {
-      final QuranRemotaData quranRemotaData = QuranRemotaData();
-      final QuranBaseRepo quranBaseRepo =
-          QuranRepoImplementaion(quranRemotaData: quranRemotaData);
-      final GetQuranDataUseCase getQuranDataUseCase =
-          GetQuranDataUseCase(quranBaseRepo: quranBaseRepo);
-      getQuranDataUseCase.call().then((value) {
-        quranEntity = value;
-
-        emit(QuranDataFromApiState());
-      });
-    } catch (e) {
-      print(e.toString());
-      emit(QuranGettingDataError());
-    }
-  }
+  // getQuranDataTest() {
+  //   try {
+  //     final QuranRemotaData quranRemotaData = QuranRemotaData();
+  //     final QuranBaseRepo quranBaseRepo =
+  //         QuranRepoImplementaion(quranRemotaData: quranRemotaData);
+  //     final GetQuranDataUseCase getQuranDataUseCase =
+  //         GetQuranDataUseCase(quranBaseRepo: quranBaseRepo);
+  //     getQuranDataUseCase.call().then((value) {
+  //       quranEntity = value;
+  //
+  //       emit(QuranDataFromApiState());
+  //     });
+  //   } catch (e) {
+  //     print(e.toString());
+  //     emit(QuranGettingDataError());
+  //   }
+  // }
 
   // getTimePrayers method
   String? locationError;

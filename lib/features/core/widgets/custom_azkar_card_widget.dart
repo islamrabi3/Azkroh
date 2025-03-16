@@ -37,7 +37,7 @@ class CustomAzkarCardWidget extends StatelessWidget {
               style:
                   AppStyle.regularTextStyle.copyWith(color: Colors.lightGreen),
             ),
-
+            SizedBox(height: 10,),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -56,25 +56,25 @@ class CustomAzkarCardWidget extends StatelessWidget {
                         children: [
                           Text(listOfDoaaModel![index].repeatTime == 0
                               ? AppString.doneRepeatTimeString
-                              : AppString.repeatTimeString),
-                          Text(': ${listOfDoaaModel![index].repeatTime}')
+                              : AppString.repeatTimeString, style: TextStyle(fontFamily: 'Amiri', fontSize: 18.0),),
+                          Text(': ${listOfDoaaModel![index].repeatTime}', style: TextStyle(fontFamily: 'Amiri', fontSize: 18.0),)
                         ],
                       ),
                     ),
                   ),
                 ),
-                Expanded(
-                    child: IconButton(
-                        onPressed: () {
-                          cubit.addingDoaaModelToHiveDbAndToggleFavoriteBtn(
-                              listOfDoaaModel!, index);
-                        },
-                        icon: Icon(
-                          Icons.favorite,
-                          color: listOfDoaaModel![index].isFavorite!
-                              ? Colors.yellow
-                              : Colors.blueGrey,
-                        )))
+                // Expanded(
+                //     child: IconButton(
+                //         onPressed: () {
+                //           cubit.addingDoaaModelToHiveDbAndToggleFavoriteBtn(
+                //               listOfDoaaModel!, index);
+                //         },
+                //         icon: Icon(
+                //           Icons.favorite,
+                //           color: listOfDoaaModel![index].isFavorite!
+                //               ? Colors.yellow
+                //               : Colors.blueGrey,
+                //         )))
               ],
             ),
           ],

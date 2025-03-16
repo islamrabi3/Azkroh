@@ -67,6 +67,8 @@ dependencies:
   animated_splash_screen: ^1.3.0
   # timezone: ^0.8.0
   # flutter_native_admob:
+  quran:
+  audioplayers:
 
 dev_dependencies:
   flutter_test:

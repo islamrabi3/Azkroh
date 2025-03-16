@@ -1,0 +1,497 @@
+-- Merging decision tree log ---
+application
+INJECTED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:6:4-47:19
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+MERGED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-13:19
+MERGED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-13:19
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:13:5-27:19
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:13:5-27:19
+MERGED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-33:19
+MERGED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-33:19
+MERGED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-12:19
+MERGED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-12:19
+MERGED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:22:5-29:19
+MERGED from [com.google.android.gms:play-services-location:21.0.1] C:\Users\Islam\.gradle\caches\transforms-3\f33c831ec39378a9fefc6d199da969b1\transformed\jetified-play-services-location-21.0.1\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-location:21.0.1] C:\Users\Islam\.gradle\caches\transforms-3\f33c831ec39378a9fefc6d199da969b1\transformed\jetified-play-services-location-21.0.1\AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-tasks:18.0.2] C:\Users\Islam\.gradle\caches\transforms-3\c1072f68f4d7a28daae5c8087ca8b0b3\transformed\jetified-play-services-tasks-18.0.2\AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.0.2] C:\Users\Islam\.gradle\caches\transforms-3\c1072f68f4d7a28daae5c8087ca8b0b3\transformed\jetified-play-services-tasks-18.0.2\AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:20:5-24:19
+MERGED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:20:5-24:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:28:5-89
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\44aeffc8f7d89313194c30936f899009\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\44aeffc8f7d89313194c30936f899009\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+	android:extractNativeLibs
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+	android:usesCleartextTraffic
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:13:18-53
+	android:name
+		INJECTED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml
+manifest
+ADDED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:1:1-48:12
+MERGED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:1:1-48:12
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:1:1-8:12
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:1:1-8:12
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:1:1-8:12
+MERGED from [:audioplayers_android] D:\Projects\Azkroh\build\audioplayers_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-11:12
+MERGED from [:flutter_compass] D:\Projects\Azkroh\build\flutter_compass\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:flutter_native_splash] D:\Projects\Azkroh\build\flutter_native_splash\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-15:12
+MERGED from [:path_provider_android] D:\Projects\Azkroh\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-29:12
+MERGED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-35:12
+MERGED from [:shared_preferences_android] D:\Projects\Azkroh\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-7:12
+MERGED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:2:1-14:12
+MERGED from [androidx.preference:preference:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\5ce0c97cd9025def8a6b4507d574d595\transformed\preference-1.2.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.browser:browser:1.8.0] C:\Users\Islam\.gradle\caches\transforms-3\fac88a1513faab10d33571b18054dcbe\transformed\browser-1.8.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\25b5819acad7846822ae6100c5782b27\transformed\slidingpanelayout-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.window:window-java:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\1ce853afccd2bad36961de94623968bd\transformed\jetified-window-java-1.2.0\AndroidManifest.xml:17:1-21:12
+MERGED from [com.google.android.gms:play-services-location:21.0.1] C:\Users\Islam\.gradle\caches\transforms-3\f33c831ec39378a9fefc6d199da969b1\transformed\jetified-play-services-location-21.0.1\AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:16:1-24:12
+MERGED from [com.google.android.gms:play-services-tasks:18.0.2] C:\Users\Islam\.gradle\caches\transforms-3\c1072f68f4d7a28daae5c8087ca8b0b3\transformed\jetified-play-services-tasks-18.0.2\AndroidManifest.xml:2:1-6:12
+MERGED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:16:1-26:12
+MERGED from [com.google.android.exoplayer:exoplayer:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4831ec12e8889dd644e56f11319a0503\transformed\jetified-exoplayer-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-dash:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\e8eefafd23b860a7f87d34a51a485008\transformed\jetified-exoplayer-dash-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-hls:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\23d76c062b373390c33236fd32c9052d\transformed\jetified-exoplayer-hls-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-rtsp:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4c2b57c5c47b08780d530b8bbc224a35\transformed\jetified-exoplayer-rtsp-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-smoothstreaming:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\259bdf3bf1dc5fdbe3ec7007b6d18651\transformed\jetified-exoplayer-smoothstreaming-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-core:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\991e36e4306d8e8b5b7f57957e9a38e3\transformed\jetified-exoplayer-core-2.19.1\AndroidManifest.xml:17:1-26:12
+MERGED from [com.google.android.exoplayer:extension-mediasession:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\ab5c8735edd395d528101256ccff284e\transformed\jetified-extension-mediasession-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-ui:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\2f1f7db925965abcae36019ff812d385\transformed\jetified-exoplayer-ui-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media:media:1.6.0] C:\Users\Islam\.gradle\caches\transforms-3\f9960ae849dcbddbdbca66022818efb4\transformed\media-1.6.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.appcompat:appcompat:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\952beddcb1dedc66923c7cf26afd4c20\transformed\appcompat-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\9198afa1d4cf511152f45e81b3c6dce7\transformed\jetified-fragment-ktx-1.7.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.fragment:fragment:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\c68072ae942a426355b8a3cd79fe5f1c\transformed\fragment-1.7.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\846c08f57fd26a93011276f768afb769\transformed\jetified-activity-ktx-1.8.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\aa8b64f3ceb03b9a800ee02e5ff967a0\transformed\jetified-activity-1.8.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\386d3e51d30a7a7edb99e7066a196fce\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\e840b6ab6d439ee41a5c87c9c00ae775\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\a6a1631936c1b59f0099bfbe3d9238c3\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\b446af4e921ba88c15c656f6f9e5fe94\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\dd3aa8237cea745669d757936521cd28\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\068a5d066596f8117c0863471eb92a4f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\2e8e865fe617471d11401be745e60616\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\f012888f820a8483db83c0addd71662d\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\7628bf7cc25121ea32ef25e1afdf8cab\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\3296352d9be0f2810548bc1c5c28b35a\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\0b88907acc5009dd3550c3f30c9baa75\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\Islam\.gradle\caches\transforms-3\19347d5f65854405f72fccf1f3410e7c\transformed\recyclerview-1.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\b80b764f06aad73a800b9860a53f2afa\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\7f7d7980258c9aae93707ab8f1336426\transformed\jetified-core-ktx-1.13.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\eb8042472fe4ab947f1b7bc5c9fca6cc\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\5d7e112a128f48cd3fa7ab6024f4a7de\transformed\jetified-appcompat-resources-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\17368f7a4889b6915d7638f7bbac428d\transformed\drawerlayout-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\3527f0625e8dc07024ca1fd57aac5b4c\transformed\customview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.4.1] C:\Users\Islam\.gradle\caches\transforms-3\98d4f90cacda05266d66bed75fd69ecb\transformed\transition-1.4.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\ac29fdb8f9aab4ca0bc161ae5bea989f\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\8f8fc20c0d0fb7d1b91abff144348079\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\daaad13d808e684be59a196799c15763\transformed\localbroadcastmanager-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\93b333f6c3f6e920cdb318fde448dca8\transformed\jetified-tracing-1.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.exoplayer:exoplayer-datasource:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\8d212ce0d9508aca0fa7aa13eed4ec6d\transformed\jetified-exoplayer-datasource-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-database:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\0d93af6042ff0628dbd4a23ef7a93870\transformed\jetified-exoplayer-database-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-extractor:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\bf9cde4d7756dad63fbd4aa812b02ac2\transformed\jetified-exoplayer-extractor-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-decoder:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\034ffcd8d44f22f8b0be84ffa6c2bcbd\transformed\jetified-exoplayer-decoder-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-container:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\68e4b227a390755daee70ff58336ab12\transformed\jetified-exoplayer-container-2.19.1\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.exoplayer:exoplayer-common:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\c64f0760d147697d6cade2ce060160a6\transformed\jetified-exoplayer-common-2.19.1\AndroidManifest.xml:17:1-26:12
+MERGED from [androidx.datastore:datastore-core-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\b87a3c802fcb41f0265c1ddb12b2b89a\transformed\jetified-datastore-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\963587fd6bcf994504483fce9d694740\transformed\jetified-datastore-preferences-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\999225890a0413cd7b05d82c846994bc\transformed\jetified-datastore-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\f227138bcc5c173ab1ec4398af426fd2\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\44aeffc8f7d89313194c30936f899009\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Islam\.gradle\caches\transforms-3\8e19f6595ab64c4d7a175ef1e41afc10\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\470cd482e0ba8f803cd332b4fc620fe0\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.window.extensions.core:core:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\fcb73d7c135027ba9c48982a2c829a07\transformed\jetified-core-1.0.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\Islam\.gradle\caches\transforms-3\e68e9182b0509df3a8a78e97b668a570\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] C:\Users\Islam\.gradle\caches\transforms-3\686faf8b2948d45d1ddb37729ef5d9b9\transformed\jetified-relinker-1.4.5\AndroidManifest.xml:2:1-7:12
+	package
+		ADDED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:2:5-38
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+	android:versionName
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+	android:versionCode
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+	xmlns:android
+		ADDED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:1:11-69
+uses-permission#android.permission.ACCESS_FINE_LOCATION
+ADDED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:4:5-79
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-79
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-79
+	android:name
+		ADDED from D:\Projects\Azkroh\android\app\src\main\AndroidManifest.xml:4:22-76
+uses-permission#android.permission.INTERNET
+ADDED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:7:5-66
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-67
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:7:5-67
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:10:5-67
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:10:5-67
+	android:name
+		ADDED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml:7:22-64
+uses-sdk
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+MERGED from [:audioplayers_android] D:\Projects\Azkroh\build\audioplayers_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:audioplayers_android] D:\Projects\Azkroh\build\audioplayers_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_compass] D:\Projects\Azkroh\build\flutter_compass\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_compass] D:\Projects\Azkroh\build\flutter_compass\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_native_splash] D:\Projects\Azkroh\build\flutter_native_splash\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:flutter_native_splash] D:\Projects\Azkroh\build\flutter_native_splash\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:path_provider_android] D:\Projects\Azkroh\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:path_provider_android] D:\Projects\Azkroh\build\path_provider_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:shared_preferences_android] D:\Projects\Azkroh\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:shared_preferences_android] D:\Projects\Azkroh\build\shared_preferences_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:5:5-44
+MERGED from [androidx.preference:preference:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\5ce0c97cd9025def8a6b4507d574d595\transformed\preference-1.2.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.preference:preference:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\5ce0c97cd9025def8a6b4507d574d595\transformed\preference-1.2.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.browser:browser:1.8.0] C:\Users\Islam\.gradle\caches\transforms-3\fac88a1513faab10d33571b18054dcbe\transformed\browser-1.8.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.browser:browser:1.8.0] C:\Users\Islam\.gradle\caches\transforms-3\fac88a1513faab10d33571b18054dcbe\transformed\browser-1.8.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\25b5819acad7846822ae6100c5782b27\transformed\slidingpanelayout-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\25b5819acad7846822ae6100c5782b27\transformed\slidingpanelayout-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window-java:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\1ce853afccd2bad36961de94623968bd\transformed\jetified-window-java-1.2.0\AndroidManifest.xml:19:5-44
+MERGED from [androidx.window:window-java:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\1ce853afccd2bad36961de94623968bd\transformed\jetified-window-java-1.2.0\AndroidManifest.xml:19:5-44
+MERGED from [com.google.android.gms:play-services-location:21.0.1] C:\Users\Islam\.gradle\caches\transforms-3\f33c831ec39378a9fefc6d199da969b1\transformed\jetified-play-services-location-21.0.1\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-location:21.0.1] C:\Users\Islam\.gradle\caches\transforms-3\f33c831ec39378a9fefc6d199da969b1\transformed\jetified-play-services-location-21.0.1\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-tasks:18.0.2] C:\Users\Islam\.gradle\caches\transforms-3\c1072f68f4d7a28daae5c8087ca8b0b3\transformed\jetified-play-services-tasks-18.0.2\AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-tasks:18.0.2] C:\Users\Islam\.gradle\caches\transforms-3\c1072f68f4d7a28daae5c8087ca8b0b3\transformed\jetified-play-services-tasks-18.0.2\AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.exoplayer:exoplayer:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4831ec12e8889dd644e56f11319a0503\transformed\jetified-exoplayer-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4831ec12e8889dd644e56f11319a0503\transformed\jetified-exoplayer-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-dash:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\e8eefafd23b860a7f87d34a51a485008\transformed\jetified-exoplayer-dash-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-dash:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\e8eefafd23b860a7f87d34a51a485008\transformed\jetified-exoplayer-dash-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-hls:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\23d76c062b373390c33236fd32c9052d\transformed\jetified-exoplayer-hls-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-hls:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\23d76c062b373390c33236fd32c9052d\transformed\jetified-exoplayer-hls-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-rtsp:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4c2b57c5c47b08780d530b8bbc224a35\transformed\jetified-exoplayer-rtsp-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-rtsp:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\4c2b57c5c47b08780d530b8bbc224a35\transformed\jetified-exoplayer-rtsp-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-smoothstreaming:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\259bdf3bf1dc5fdbe3ec7007b6d18651\transformed\jetified-exoplayer-smoothstreaming-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-smoothstreaming:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\259bdf3bf1dc5fdbe3ec7007b6d18651\transformed\jetified-exoplayer-smoothstreaming-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-core:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\991e36e4306d8e8b5b7f57957e9a38e3\transformed\jetified-exoplayer-core-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-core:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\991e36e4306d8e8b5b7f57957e9a38e3\transformed\jetified-exoplayer-core-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:extension-mediasession:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\ab5c8735edd395d528101256ccff284e\transformed\jetified-extension-mediasession-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:extension-mediasession:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\ab5c8735edd395d528101256ccff284e\transformed\jetified-extension-mediasession-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-ui:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\2f1f7db925965abcae36019ff812d385\transformed\jetified-exoplayer-ui-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-ui:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\2f1f7db925965abcae36019ff812d385\transformed\jetified-exoplayer-ui-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.media:media:1.6.0] C:\Users\Islam\.gradle\caches\transforms-3\f9960ae849dcbddbdbca66022818efb4\transformed\media-1.6.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.media:media:1.6.0] C:\Users\Islam\.gradle\caches\transforms-3\f9960ae849dcbddbdbca66022818efb4\transformed\media-1.6.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\952beddcb1dedc66923c7cf26afd4c20\transformed\appcompat-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\952beddcb1dedc66923c7cf26afd4c20\transformed\appcompat-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\9198afa1d4cf511152f45e81b3c6dce7\transformed\jetified-fragment-ktx-1.7.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment-ktx:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\9198afa1d4cf511152f45e81b3c6dce7\transformed\jetified-fragment-ktx-1.7.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\c68072ae942a426355b8a3cd79fe5f1c\transformed\fragment-1.7.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.7.1] C:\Users\Islam\.gradle\caches\transforms-3\c68072ae942a426355b8a3cd79fe5f1c\transformed\fragment-1.7.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\846c08f57fd26a93011276f768afb769\transformed\jetified-activity-ktx-1.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\846c08f57fd26a93011276f768afb769\transformed\jetified-activity-ktx-1.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\aa8b64f3ceb03b9a800ee02e5ff967a0\transformed\jetified-activity-1.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.1] C:\Users\Islam\.gradle\caches\transforms-3\aa8b64f3ceb03b9a800ee02e5ff967a0\transformed\jetified-activity-1.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\386d3e51d30a7a7edb99e7066a196fce\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\386d3e51d30a7a7edb99e7066a196fce\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\e840b6ab6d439ee41a5c87c9c00ae775\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\e840b6ab6d439ee41a5c87c9c00ae775\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\a6a1631936c1b59f0099bfbe3d9238c3\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\a6a1631936c1b59f0099bfbe3d9238c3\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\b446af4e921ba88c15c656f6f9e5fe94\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\b446af4e921ba88c15c656f6f9e5fe94\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\dd3aa8237cea745669d757936521cd28\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\dd3aa8237cea745669d757936521cd28\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\068a5d066596f8117c0863471eb92a4f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\068a5d066596f8117c0863471eb92a4f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\2e8e865fe617471d11401be745e60616\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\2e8e865fe617471d11401be745e60616\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\f012888f820a8483db83c0addd71662d\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\f012888f820a8483db83c0addd71662d\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\7628bf7cc25121ea32ef25e1afdf8cab\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\Islam\.gradle\caches\transforms-3\7628bf7cc25121ea32ef25e1afdf8cab\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\3296352d9be0f2810548bc1c5c28b35a\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\3296352d9be0f2810548bc1c5c28b35a\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\0b88907acc5009dd3550c3f30c9baa75\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\0b88907acc5009dd3550c3f30c9baa75\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\Islam\.gradle\caches\transforms-3\19347d5f65854405f72fccf1f3410e7c\transformed\recyclerview-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\Islam\.gradle\caches\transforms-3\19347d5f65854405f72fccf1f3410e7c\transformed\recyclerview-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\b80b764f06aad73a800b9860a53f2afa\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\b80b764f06aad73a800b9860a53f2afa\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\7f7d7980258c9aae93707ab8f1336426\transformed\jetified-core-ktx-1.13.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\7f7d7980258c9aae93707ab8f1336426\transformed\jetified-core-ktx-1.13.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\eb8042472fe4ab947f1b7bc5c9fca6cc\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\eb8042472fe4ab947f1b7bc5c9fca6cc\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\5d7e112a128f48cd3fa7ab6024f4a7de\transformed\jetified-appcompat-resources-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\5d7e112a128f48cd3fa7ab6024f4a7de\transformed\jetified-appcompat-resources-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\17368f7a4889b6915d7638f7bbac428d\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\17368f7a4889b6915d7638f7bbac428d\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\3527f0625e8dc07024ca1fd57aac5b4c\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\3527f0625e8dc07024ca1fd57aac5b4c\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.4.1] C:\Users\Islam\.gradle\caches\transforms-3\98d4f90cacda05266d66bed75fd69ecb\transformed\transition-1.4.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.4.1] C:\Users\Islam\.gradle\caches\transforms-3\98d4f90cacda05266d66bed75fd69ecb\transformed\transition-1.4.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\ac29fdb8f9aab4ca0bc161ae5bea989f\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\ac29fdb8f9aab4ca0bc161ae5bea989f\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\8f8fc20c0d0fb7d1b91abff144348079\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\8f8fc20c0d0fb7d1b91abff144348079\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\daaad13d808e684be59a196799c15763\transformed\localbroadcastmanager-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.1.0] C:\Users\Islam\.gradle\caches\transforms-3\daaad13d808e684be59a196799c15763\transformed\localbroadcastmanager-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\93b333f6c3f6e920cdb318fde448dca8\transformed\jetified-tracing-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\93b333f6c3f6e920cdb318fde448dca8\transformed\jetified-tracing-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.exoplayer:exoplayer-datasource:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\8d212ce0d9508aca0fa7aa13eed4ec6d\transformed\jetified-exoplayer-datasource-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-datasource:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\8d212ce0d9508aca0fa7aa13eed4ec6d\transformed\jetified-exoplayer-datasource-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-database:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\0d93af6042ff0628dbd4a23ef7a93870\transformed\jetified-exoplayer-database-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-database:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\0d93af6042ff0628dbd4a23ef7a93870\transformed\jetified-exoplayer-database-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-extractor:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\bf9cde4d7756dad63fbd4aa812b02ac2\transformed\jetified-exoplayer-extractor-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-extractor:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\bf9cde4d7756dad63fbd4aa812b02ac2\transformed\jetified-exoplayer-extractor-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-decoder:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\034ffcd8d44f22f8b0be84ffa6c2bcbd\transformed\jetified-exoplayer-decoder-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-decoder:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\034ffcd8d44f22f8b0be84ffa6c2bcbd\transformed\jetified-exoplayer-decoder-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-container:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\68e4b227a390755daee70ff58336ab12\transformed\jetified-exoplayer-container-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-container:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\68e4b227a390755daee70ff58336ab12\transformed\jetified-exoplayer-container-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-common:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\c64f0760d147697d6cade2ce060160a6\transformed\jetified-exoplayer-common-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.exoplayer:exoplayer-common:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\c64f0760d147697d6cade2ce060160a6\transformed\jetified-exoplayer-common-2.19.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.datastore:datastore-core-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\b87a3c802fcb41f0265c1ddb12b2b89a\transformed\jetified-datastore-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\b87a3c802fcb41f0265c1ddb12b2b89a\transformed\jetified-datastore-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\963587fd6bcf994504483fce9d694740\transformed\jetified-datastore-preferences-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\963587fd6bcf994504483fce9d694740\transformed\jetified-datastore-preferences-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\999225890a0413cd7b05d82c846994bc\transformed\jetified-datastore-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.3] C:\Users\Islam\.gradle\caches\transforms-3\999225890a0413cd7b05d82c846994bc\transformed\jetified-datastore-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\f227138bcc5c173ab1ec4398af426fd2\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\f227138bcc5c173ab1ec4398af426fd2\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\44aeffc8f7d89313194c30936f899009\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\44aeffc8f7d89313194c30936f899009\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Islam\.gradle\caches\transforms-3\8e19f6595ab64c4d7a175ef1e41afc10\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Islam\.gradle\caches\transforms-3\8e19f6595ab64c4d7a175ef1e41afc10\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\470cd482e0ba8f803cd332b4fc620fe0\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\470cd482e0ba8f803cd332b4fc620fe0\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.window.extensions.core:core:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\fcb73d7c135027ba9c48982a2c829a07\transformed\jetified-core-1.0.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.window.extensions.core:core:1.0.0] C:\Users\Islam\.gradle\caches\transforms-3\fcb73d7c135027ba9c48982a2c829a07\transformed\jetified-core-1.0.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\Islam\.gradle\caches\transforms-3\e68e9182b0509df3a8a78e97b668a570\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\Islam\.gradle\caches\transforms-3\e68e9182b0509df3a8a78e97b668a570\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] C:\Users\Islam\.gradle\caches\transforms-3\686faf8b2948d45d1ddb37729ef5d9b9\transformed\jetified-relinker-1.4.5\AndroidManifest.xml:5:5-43
+MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] C:\Users\Islam\.gradle\caches\transforms-3\686faf8b2948d45d1ddb37729ef5d9b9\transformed\jetified-relinker-1.4.5\AndroidManifest.xml:5:5-43
+	android:targetSdkVersion
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from D:\Projects\Azkroh\android\app\src\debug\AndroidManifest.xml
+uses-permission#android.permission.ACCESS_COARSE_LOCATION
+ADDED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:9:5-81
+	android:name
+		ADDED from [:flutter_qiblah] D:\Projects\Azkroh\build\flutter_qiblah\intermediates\merged_manifest\debug\AndroidManifest.xml:9:22-78
+service#com.baseflow.geolocator.GeolocatorLocationService
+ADDED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:9-12:56
+	android:enabled
+		ADDED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:10:13-35
+	android:exported
+		ADDED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:11:13-37
+	android:foregroundServiceType
+		ADDED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:12:13-53
+	android:name
+		ADDED from [:geolocator_android] D:\Projects\Azkroh\build\geolocator_android\intermediates\merged_manifest\debug\AndroidManifest.xml:9:13-77
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:8:5-77
+	android:name
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:8:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:9:5-92
+	android:name
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:9:22-89
+service#com.cheebeez.radio_player.RadioPlayerService
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:14:9-18:19
+	android:exported
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:16:13-37
+	android:foregroundServiceType
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:17:13-58
+	android:name
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:15:13-72
+receiver#androidx.media.session.MediaButtonReceiver
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:20:9-26:20
+	android:exported
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:22:13-36
+	android:name
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:21:13-70
+intent-filter#action:name:android.intent.action.MEDIA_BUTTON
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:23:13-25:29
+action#android.intent.action.MEDIA_BUTTON
+ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:24:17-77
+	android:name
+		ADDED from [:radio_player] D:\Projects\Azkroh\build\radio_player\intermediates\merged_manifest\debug\AndroidManifest.xml:24:25-74
+provider#dev.fluttercommunity.plus.share.ShareFileProvider
+ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:13:9-21:20
+	android:grantUriPermissions
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:17:13-47
+	android:authorities
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:15:13-74
+	android:exported
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:16:13-37
+	android:name
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:14:13-77
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:18:13-20:68
+	android:resource
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:20:17-65
+	android:name
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:19:17-67
+receiver#dev.fluttercommunity.plus.share.SharePlusPendingIntent
+ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:26:9-32:20
+	android:exported
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:27:13-82
+intent-filter#action:name:EXTRA_CHOSEN_COMPONENT
+ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:29:13-31:29
+action#EXTRA_CHOSEN_COMPONENT
+ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:30:17-65
+	android:name
+		ADDED from [:share_plus] D:\Projects\Azkroh\build\share_plus\intermediates\merged_manifest\debug\AndroidManifest.xml:30:25-62
+activity#io.flutter.plugins.urllauncher.WebViewActivity
+ADDED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:8:9-11:74
+	android:exported
+		ADDED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:10:13-37
+	android:theme
+		ADDED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:11:13-71
+	android:name
+		ADDED from [:url_launcher_android] D:\Projects\Azkroh\build\url_launcher_android\intermediates\merged_manifest\debug\AndroidManifest.xml:9:13-74
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:24:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:26:9-28:40
+	android:required
+		ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [androidx.window:window:1.2.0] C:\Users\Islam\.gradle\caches\transforms-3\a243119d54fd60ec7bcded1cf7759930\transformed\jetified-window-1.2.0\AndroidManifest.xml:27:13-51
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:20:9-22:45
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:22:19-43
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:21:19-78
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\0c80eeb053643815b021825557cc1f80\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:20:19-85
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:21:9-23:69
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:23:13-66
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.1.0] C:\Users\Islam\.gradle\caches\transforms-3\6f6d51db0c9be3cfd49d6951cbf8e357\transformed\jetified-play-services-basement-18.1.0\AndroidManifest.xml:22:13-58
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from [com.google.android.exoplayer:exoplayer-core:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\991e36e4306d8e8b5b7f57957e9a38e3\transformed\jetified-exoplayer-core-2.19.1\AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.exoplayer:exoplayer-common:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\c64f0760d147697d6cade2ce060160a6\transformed\jetified-exoplayer-common-2.19.1\AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.exoplayer:exoplayer-common:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\c64f0760d147697d6cade2ce060160a6\transformed\jetified-exoplayer-common-2.19.1\AndroidManifest.xml:24:5-79
+	android:name
+		ADDED from [com.google.android.exoplayer:exoplayer-core:2.19.1] C:\Users\Islam\.gradle\caches\transforms-3\991e36e4306d8e8b5b7f57957e9a38e3\transformed\jetified-exoplayer-core-2.19.1\AndroidManifest.xml:24:22-76
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Islam\.gradle\caches\transforms-3\bee823ac480c6003adf882d164eadbfc\transformed\jetified-startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:25:13-67
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\Islam\.gradle\caches\transforms-3\5df9349f3f0a13ad5b8f785cca9338ac\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+permission#com.islamsalemco.azkroh.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+uses-permission#com.islamsalemco.azkroh.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\Islam\.gradle\caches\transforms-3\afdd8d200174a5372668a4e27b11faee\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Islam\.gradle\caches\transforms-3\287c7cc57ddeabd14a5cd400839aad8c\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92

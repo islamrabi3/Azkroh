@@ -49,13 +49,14 @@ class MyApp extends StatelessWidget {
         providers: [
           BlocProvider(
             create: (context) => AppCubit()
-              ..getQuranDataTest()
+              // ..getQuranDataTest()
               ..getPrayerTimeFromApi(),
           )
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Flutter Demo',
+          locale: const Locale('ar'),
           theme: ThemeData(
             floatingActionButtonTheme: const FloatingActionButtonThemeData(
               backgroundColor: Colors.blueGrey,
