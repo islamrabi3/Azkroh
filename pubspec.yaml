@@ -48,7 +48,7 @@ dependencies:
   adhan:
   intl: ^0.18.0
   radio_player: ^1.2.0
-  flutter_qiblah: ^2.1.0
+  flutter_qiblah: ^3.1.0+1
   #  geolocator: ^9.0.2
   hijri:
   win32: 3.0.0
