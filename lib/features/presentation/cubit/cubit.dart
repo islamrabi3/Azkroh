@@ -119,23 +119,23 @@ class AppCubit extends Cubit<Appstates> {
   QuranEntity? quranEntity;
   List<AyahEntity>? ayahList;
 
-  // getQuranDataTest() {
-  //   try {
-  //     final QuranRemotaData quranRemotaData = QuranRemotaData();
-  //     final QuranBaseRepo quranBaseRepo =
-  //         QuranRepoImplementaion(quranRemotaData: quranRemotaData);
-  //     final GetQuranDataUseCase getQuranDataUseCase =
-  //         GetQuranDataUseCase(quranBaseRepo: quranBaseRepo);
-  //     getQuranDataUseCase.call().then((value) {
-  //       quranEntity = value;
-  //
-  //       emit(QuranDataFromApiState());
-  //     });
-  //   } catch (e) {
-  //     print(e.toString());
-  //     emit(QuranGettingDataError());
-  //   }
-  // }
+  getQuranDataTest() {
+    try {
+      final QuranRemotaData quranRemotaData = QuranRemotaData();
+      final QuranBaseRepo quranBaseRepo =
+          QuranRepoImplementaion(quranRemotaData: quranRemotaData);
+      final GetQuranDataUseCase getQuranDataUseCase =
+          GetQuranDataUseCase(quranBaseRepo: quranBaseRepo);
+      getQuranDataUseCase.call().then((value) {
+        quranEntity = value;
+
+        emit(QuranDataFromApiState());
+      });
+    } catch (e) {
+      print(e.toString());
+      emit(QuranGettingDataError());
+    }
+  }
 
   // getTimePrayers method
   String? locationError;

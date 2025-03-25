@@ -6,6 +6,8 @@ import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SurahListScreen extends StatelessWidget {
+  const SurahListScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -45,7 +47,7 @@ class SurahListScreen extends StatelessWidget {
 class SurahScreen extends StatefulWidget {
   final int surahNumber;
 
-  SurahScreen({required this.surahNumber});
+  const SurahScreen({super.key, required this.surahNumber});
 
   @override
   _SurahScreenState createState() => _SurahScreenState();
@@ -87,6 +89,7 @@ class _SurahScreenState extends State<SurahScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+        backgroundColor: Colors.grey[200],
         appBar: AppBar(
           title: Text(_surahData.arabicName, textDirection: TextDirection.rtl),
         ),
@@ -124,7 +127,7 @@ class _SurahScreenState extends State<SurahScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w400,
-                    fontFamily: 'Amiri-Quran',
+                    // fontFamily: 'Amiri',
                   ),
                 ),
               ),

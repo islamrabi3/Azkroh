@@ -58,7 +58,7 @@ android {
         applicationId "com.islamsalemco.azkroh"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 9
+        versionCode 10
         versionName flutterVersionName
         multiDexEnabled true
     }
