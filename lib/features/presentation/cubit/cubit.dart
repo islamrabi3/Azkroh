@@ -73,7 +73,7 @@ class AppCubit extends Cubit<Appstates> {
   int sebhaCount = 0;
 
   List<Widget> screens = [
-     SurahListScreen(),
+    SurahListScreen(),
     Sebha(),
     const PrayerScreen(),
     const RadioScreen(),
@@ -137,43 +137,13 @@ class AppCubit extends Cubit<Appstates> {
     }
   }
 
-  // getTimePrayers method
-  String? locationError;
-  PrayerTimes? prayerTimes;
-
-  getTimePrayersMethod() async {
-    emit(GetPrayerTimeLoadingState());
-    final params = CalculationMethod.egyptian.getParameters();
-    params.madhab = Madhab.shafi;
-
-    LocationHelper.getLocationMethod().then((value) {
-      if (value != null) {
-        prayerTimes = PrayerTimes.today(
-          Coordinates(value.latitude, value.longitude),
-          params,
-        );
-        print(DateFormat.jm().format(prayerTimes!.fajr));
-        print(DateFormat.jm().format(prayerTimes!.dhuhr));
-        print(DateFormat.jm().format(prayerTimes!.asr));
-        print(DateFormat.jm().format(prayerTimes!.maghrib));
-        print(DateFormat.jm().format(prayerTimes!.isha));
-
-        emit(GetPrayersTimeState());
-      } else {
-        locationError = 'No pryer Time has been came yet ';
-        emit(GetPrayerTimeErrorState());
-      }
-    });
-  }
-
   AzanEntity? azanEntityData;
   List<String> prayerTimeList = [];
 
   getPrayerTimeFromApi() async {
     try {
-      final getLocation = await LocationHelper.getLocationMethod();
       emit(GetPrayerTimeLoadingState());
-
+      final getLocation = await LocationHelper.getLocationMethod();
       AzanRemoteDataImp azanRemoteDataImp = AzanRemoteDataImp();
       AzanRepoImp azanRepoImp = AzanRepoImp(azanRemoteDataImp);
       GetAzanDetailsUseCase getAzanDetailsUseCase =
@@ -184,12 +154,13 @@ class AppCubit extends Cubit<Appstates> {
         azanEntityData = value;
 
         print(azanEntityData!.data.timings.fajr);
-        emit(GetPrayersTimeState());
+        emit(GetPrayersTimeState(azanEntity: azanEntityData!));
       }).catchError((error) {
         print(error.toString());
       });
     } catch (e) {
       print(e.toString());
+      emit(GetPrayerTimeErrorState());
     }
   }
 

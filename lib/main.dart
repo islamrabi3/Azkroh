@@ -19,7 +19,7 @@ void main() async {
   // LocalNotificationHelper.scheduleNotification();
 
   await CacheHelper.init();
-  await LocationHelper.getLocationMethod();
+  // await LocationHelper.getLocationMethod();
   final document = await getApplicationDocumentsDirectory();
   await Hive.initFlutter(document.path);
 
@@ -35,8 +35,7 @@ void main() async {
   await Hive.openBox('box_store');
   await Hive.openBox('fav');
   await Hive.openBox('quran_box');
-  //
-  //  print('${Hive.box('box_store').getAt(0)}');
+
 }
 
 class MyApp extends StatelessWidget {
@@ -46,13 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-        providers: [
-          BlocProvider(
-            create: (context) => AppCubit()
-              // ..getQuranDataTest()
-              ..getPrayerTimeFromApi(),
-          )
-        ],
+        providers: [BlocProvider(create: (context) => AppCubit())],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Flutter Demo',

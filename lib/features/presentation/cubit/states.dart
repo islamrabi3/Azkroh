@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/domain/entity/azan_entity.dart';
+
 abstract class Appstates {}
 
 class AppInitState extends Appstates {}
@@ -14,7 +16,11 @@ class QuranDataFromApiState extends Appstates {}
 
 class QuranGettingDataError extends Appstates {}
 
-class GetPrayersTimeState extends Appstates {}
+class GetPrayersTimeState extends Appstates {
+  final AzanEntity azanEntity;
+
+  GetPrayersTimeState({required this.azanEntity});
+}
 
 class GetPrayerTimeErrorState extends Appstates {}
 
