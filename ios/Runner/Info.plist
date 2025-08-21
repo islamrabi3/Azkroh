@@ -51,5 +51,9 @@
 		<string>ca-app-pub-6969271444702752~2971954138</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>This app needs location access to provide location-based features like prayer times and Qibla direction.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>This app needs location access to provide location-based features like prayer times and Qibla direction.</string>
 	</dict>
 </plist>
