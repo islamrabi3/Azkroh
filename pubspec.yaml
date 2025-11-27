@@ -62,13 +62,17 @@ dependencies:
   url_launcher: ^6.1.8
   path_provider: ^2.0.12
   change_app_package_name: ^1.1.0
-  # flutter_local_notifications: ^8.2.0
+  flutter_local_notifications: ^17.2.2
   geolocator:
   animated_splash_screen: ^1.3.0
-  # timezone: ^0.8.0
+  timezone: ^0.9.4
+  permission_handler: ^11.3.1
   # flutter_native_admob:
   quran:
   audioplayers:
+  just_audio: ^0.9.39
+  audio_session: ^0.1.21
+  flutter_screenutil: ^5.9.3
 
 dev_dependencies:
   flutter_test:
@@ -80,10 +84,32 @@ dev_dependencies:
 
 
 flutter_native_splash:
-  color: "#ffffff"
+  # Background colors for light and dark themes
+  color: "#f8f9fa"
+  color_dark: "#1a1a1a"
+  
+  # Main splash image with relative sizing
   image: assets/images/أذكروه.png
+  image_dark: assets/images/أذكروه.png
+  
+  # Android 12+ configuration for adaptive splash
+  android_12:
+    image: assets/images/أذكروه.png
+    image_dark: assets/images/أذكروه.png
+    icon_background_color: "#f8f9fa"
+    icon_background_color_dark: "#1a1a1a"
+  
+  # Platform-specific configurations
   android: true
   ios: true
+  web: true
+  
+  # Responsive sizing - image scales relative to screen size
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  
+  # Full screen configuration for modern devices
+  fullscreen: true
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -137,9 +163,18 @@ flutter:
     - family: Amiri
       fonts:
         - asset: assets/fonts/Amiri-Regular.ttf
+        - asset: assets/fonts/Amiri-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Amiri-Regular.ttf
+          weight: 700
+          
     - family: Amiri-Quran
       fonts:
         - asset: assets/fonts/AmiriQuran-Regular.ttf
+        - asset: assets/fonts/AmiriQuran-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/AmiriQuran-Regular.ttf
+          weight: 700
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #

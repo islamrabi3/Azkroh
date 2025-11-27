@@ -1,5 +1,8 @@
 import 'package:adhan/adhan.dart';
 import 'package:azkroh_app/features/core/doaa_model.dart';
+import 'package:azkroh_app/features/core/prayer_notification_scheduler.dart';
+import 'package:azkroh_app/features/core/dhikr_notification_scheduler.dart';
+import 'package:azkroh_app/features/core/services/global_location_service.dart';
 import 'package:azkroh_app/features/data/datasource/remota_data_source/azan_remote_data.dart';
 import 'package:azkroh_app/features/data/datasource/remota_data_source/quran_remote_data.dart';
 import 'package:azkroh_app/features/data/repo/AzanRepoImp.dart';
@@ -10,10 +13,9 @@ import 'package:azkroh_app/features/domain/repo/quran_base_repo.dart';
 import 'package:azkroh_app/features/domain/usecase/get_azan_details.dart';
 import 'package:azkroh_app/features/domain/usecase/get_quran_data_use_case.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
-import 'package:azkroh_app/features/presentation/screens/all_screen/hijri_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/enhanced_hijri_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/paryer_time_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/qibla_screen.dart';
-import 'package:azkroh_app/features/presentation/screens/all_screen/quran_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/radio_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/sebha.dart';
 import 'package:flutter/cupertino.dart';
@@ -24,7 +26,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/methods/get_location.dart';
-import '../screens/quran_screen_locally/quran_screen_locally.dart';
+import '../screens/quran_screen_locally/enhanced_quran_screen.dart';
 
 class AppCubit extends Cubit<Appstates> {
   AppCubit() : super(AppInitState());
@@ -73,18 +75,30 @@ class AppCubit extends Cubit<Appstates> {
   int sebhaCount = 0;
 
   List<Widget> screens = [
-     SurahListScreen(),
+    const EnhancedQuranScreen(),
     Sebha(),
     const PrayerScreen(),
     const RadioScreen(),
     const QibalScreen(),
-    const HijriCalender(),
+    const EnhancedHijriScreen(),
   ];
 
   void sebhaIncrement() async {
     try {
       sebhaCount++;
       emit(AppSuccessState());
+    } catch (error) {
+      print(error.toString());
+      emit(AppErrorState());
+    }
+  }
+
+  void sebhaDecrement() async {
+    try {
+      if (sebhaCount > 0) {
+        sebhaCount--;
+        emit(AppSuccessState());
+      }
     } catch (error) {
       print(error.toString());
       emit(AppErrorState());
@@ -168,28 +182,58 @@ class AppCubit extends Cubit<Appstates> {
 
   AzanEntity? azanEntityData;
   List<String> prayerTimeList = [];
+  final PrayerNotificationScheduler _prayerScheduler = PrayerNotificationScheduler();
+  final DhikrNotificationScheduler _dhikrScheduler = DhikrNotificationScheduler();
+  final GlobalLocationService _locationService = GlobalLocationService();
 
   getPrayerTimeFromApi() async {
     try {
-      final getLocation = await LocationHelper.getLocationMethod();
       emit(GetPrayerTimeLoadingState());
+      
+      // Initialize global location service
+      await _locationService.initialize();
+      
+      final position = _locationService.currentPosition ?? 
+          await LocationHelper.getLocationMethod();
+      
+      if (position == null) {
+        print('Unable to get location');
+        emit(GetPrayerTimeErrorState());
+        return;
+      }
 
       AzanRemoteDataImp azanRemoteDataImp = AzanRemoteDataImp();
       AzanRepoImp azanRepoImp = AzanRepoImp(azanRemoteDataImp);
       GetAzanDetailsUseCase getAzanDetailsUseCase =
           GetAzanDetailsUseCase(azanBaseRepo: azanRepoImp);
       getAzanDetailsUseCase
-          .call(getLocation!.latitude, getLocation.longitude)
-          .then((value) {
+          .call(position.latitude, position.longitude)
+          .then((value) async {
         azanEntityData = value;
 
         print(azanEntityData!.data.timings.fajr);
+        
+        // Schedule prayer notifications
+        try {
+          await _prayerScheduler.scheduleAllPrayerNotifications(azanEntityData!);
+          await _prayerScheduler.schedulePrayerReminders(azanEntityData!);
+          print('تم جدولة إشعارات الصلاة بنجاح');
+          
+          // Initialize dhikr reminders (including morning/evening azkar)
+          await _dhikrScheduler.initializeAllDhikrReminders();
+          print('تم تهيئة تذكيرات الذكر بنجاح');
+        } catch (e) {
+          print('خطأ في جدولة الإشعارات: $e');
+        }
+        
         emit(GetPrayersTimeState());
       }).catchError((error) {
         print(error.toString());
+        emit(GetPrayerTimeErrorState());
       });
     } catch (e) {
       print(e.toString());
+      emit(GetPrayerTimeErrorState());
     }
   }
 

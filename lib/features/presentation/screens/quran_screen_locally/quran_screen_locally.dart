@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/presentation/screens/quran_screen_locally/surah_data.dart';
 import 'package:azkroh_app/features/presentation/screens/quran_screen_locally/surah_service.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +14,19 @@ class SurahListScreen extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-            title: Text('القرآن الكريم', textDirection: TextDirection.rtl)),
+          title: const Text(
+            'القرآن الكريم',
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: AppStyle.primaryGreen,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
         body: ListView.builder(
           itemCount: 114,
           itemBuilder: (context, index) {
@@ -91,7 +103,18 @@ class _SurahScreenState extends State<SurahScreen> {
       child: Scaffold(
         backgroundColor: Colors.grey[200],
         appBar: AppBar(
-          title: Text(_surahData.arabicName, textDirection: TextDirection.rtl),
+          title: Text(
+            _surahData.arabicName,
+            textDirection: TextDirection.rtl,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: AppStyle.primaryGreen,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: ListView.builder(
           itemCount: _surahData.verseCount,
@@ -115,7 +138,7 @@ class _SurahScreenState extends State<SurahScreen> {
                 padding: EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
                   color: _lastReadSurah == widget.surahNumber &&
-                      _lastReadVerse == index + 1
+                          _lastReadVerse == index + 1
                       ? Colors.yellow[100]
                       : null,
                   border: Border.all(color: Colors.grey.shade300),

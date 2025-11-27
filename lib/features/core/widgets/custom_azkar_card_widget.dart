@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../presentation/cubit/cubit.dart';
 import '../app_strings.dart';
@@ -20,61 +21,70 @@ class CustomAzkarCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // var fav = Hive.box('fav').get(index) as bool;
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+      margin: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: EdgeInsets.all(12.r),
         child: Column(
           children: [
-            // if(listOfDoaaModel![index].isFavorite!)
             Text(
               '${listOfDoaaModel![index].content}',
-              style: AppStyle.regularTextStyle,
+              style: TextStyle(
+                fontFamily: 'Amiri',
+                fontSize: 18.sp,
+                color: AppStyle.textDark,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
             ),
+            SizedBox(height: 8.h),
             Text(
               '${listOfDoaaModel![index].desc}',
-              style:
-                  AppStyle.regularTextStyle.copyWith(color: Colors.lightGreen),
+              style: TextStyle(
+                fontFamily: 'Amiri',
+                fontSize: 14.sp,
+                color: AppStyle.lightGreen,
+              ),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 10,),
+            SizedBox(height: 12.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Expanded(
                   child: Container(
-                    height: 30.0,
-                    // width: 20.0,
+                    height: 36.h,
                     decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-                        borderRadius: BorderRadius.circular(15.0)),
+                        color: AppStyle.primaryGreen,
+                        borderRadius: BorderRadius.circular(18.r)),
                     child: InkWell(
                       onTap: () => cubit.azkarCountIncremeantMethod(
                           listOfDoaaModel!, index),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(listOfDoaaModel![index].repeatTime == 0
-                              ? AppString.doneRepeatTimeString
-                              : AppString.repeatTimeString, style: TextStyle(fontFamily: 'Amiri', fontSize: 18.0),),
-                          Text(': ${listOfDoaaModel![index].repeatTime}', style: TextStyle(fontFamily: 'Amiri', fontSize: 18.0),)
+                          Text(
+                            listOfDoaaModel![index].repeatTime == 0
+                                ? AppString.doneRepeatTimeString
+                                : AppString.repeatTimeString,
+                            style: TextStyle(
+                                fontFamily: 'Amiri',
+                                fontSize: 16.sp,
+                                color: AppStyle.pureWhite),
+                          ),
+                          Text(
+                            ': ${listOfDoaaModel![index].repeatTime}',
+                            style: TextStyle(
+                                fontFamily: 'Amiri',
+                                fontSize: 16.sp,
+                                color: AppStyle.pureWhite),
+                          )
                         ],
                       ),
                     ),
                   ),
                 ),
-                // Expanded(
-                //     child: IconButton(
-                //         onPressed: () {
-                //           cubit.addingDoaaModelToHiveDbAndToggleFavoriteBtn(
-                //               listOfDoaaModel!, index);
-                //         },
-                //         icon: Icon(
-                //           Icons.favorite,
-                //           color: listOfDoaaModel![index].isFavorite!
-                //               ? Colors.yellow
-                //               : Colors.blueGrey,
-                //         )))
               ],
             ),
           ],
