@@ -74,9 +74,10 @@ android {
     }
     buildTypes {
         release {
-            // Use debug signing for development builds
-            // For production, create key.properties with proper signing credentials
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
