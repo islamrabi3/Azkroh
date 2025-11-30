@@ -1,0 +1,13 @@
+package_rename_config:
+  android:
+    app_name: اذكروه
+    package_name: com.islamsalemco.azkroh
+
+
+  ios:
+    app_name: اذكروه
+    bundle_name: اذكروه
+    package_name: com.islamsalemco.azkroh
+
+
+

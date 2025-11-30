@@ -4,6 +4,7 @@ import 'package:azkroh_app/features/core/services/azkar_state_service.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -111,7 +112,12 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
         }
         _updateProgress();
       });
-      _saveState();
+      // Save state immediately and ensure it persists
+      _saveState().then((_) {
+        debugPrint('✅ Azkar state saved for index $index');
+      }).catchError((e) {
+        debugPrint('❌ Error saving Azkar state: $e');
+      });
       
       if (_completed.every((c) => c)) {
         _showCompletionDialog();
@@ -639,10 +645,25 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                         IconButton(
                           icon: Icon(Icons.share_rounded, size: 22.sp),
                           color: Colors.grey[600],
-                          onPressed: () {
-                            Share.share(
-                              '${doaa.content ?? ''}\n\n${doaa.desc ?? ''}\n\nمن تطبيق أذكروه',
-                            );
+                          onPressed: () async {
+                            try {
+                              await Share.share(
+                                '${doaa.content ?? ''}\n\n${doaa.desc ?? ''}\n\nمن تطبيق أذكروه',
+                                subject: 'ذكر من تطبيق أذكروه',
+                              );
+                              debugPrint('تمت المشاركة بنجاح');
+                            } catch (e) {
+                              debugPrint('خطأ في المشاركة: $e');
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('حدث خطأ أثناء المشاركة', style: TextStyle(fontSize: 14.sp)),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            }
                           },
                           tooltip: 'مشاركة',
                         ),

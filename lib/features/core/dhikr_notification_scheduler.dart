@@ -109,13 +109,15 @@ class DhikrNotificationScheduler {
   Future<void> scheduleMorningDhikr() async {
     try {
       final now = DateTime.now();
-      final morningTime = DateTime(
-        now.year,
-        now.month,
-        now.day + (now.hour >= 6 ? 1 : 0), // Next day if after 6 AM
-        6, // 6 AM
-        0,
-      );
+      DateTime morningTime;
+
+      // If it's before 6 AM today, schedule for today
+      // Otherwise, schedule for tomorrow
+      if (now.hour < 6) {
+        morningTime = DateTime(now.year, now.month, now.day, 6, 0);
+      } else {
+        morningTime = DateTime(now.year, now.month, now.day + 1, 6, 0);
+      }
 
       final dhikrText = morningDhikr[_random.nextInt(morningDhikr.length)];
 
@@ -123,12 +125,12 @@ class DhikrNotificationScheduler {
         id: NotificationService.dhikrReminderBaseId + 50,
         dhikrText: 'أذكار الصباح: $dhikrText',
         scheduledTime: morningTime,
-        isRepeating: true,
+        isRepeating: true, // This will repeat daily at 6 AM
       );
 
-      print('تم جدولة تذكير أذكار الصباح');
+      print('✅ تم جدولة تذكير أذكار الصباح في $morningTime (يتكرر يومياً)');
     } catch (e) {
-      print('خطأ في جدولة أذكار الصباح: $e');
+      print('❌ خطأ في جدولة أذكار الصباح: $e');
     }
   }
 
@@ -136,13 +138,15 @@ class DhikrNotificationScheduler {
   Future<void> scheduleEveningDhikr() async {
     try {
       final now = DateTime.now();
-      final eveningTime = DateTime(
-        now.year,
-        now.month,
-        now.day + (now.hour >= 18 ? 1 : 0), // Next day if after 6 PM
-        18, // 6 PM
-        0,
-      );
+      DateTime eveningTime;
+
+      // If it's before 6 PM today, schedule for today
+      // Otherwise, schedule for tomorrow
+      if (now.hour < 18) {
+        eveningTime = DateTime(now.year, now.month, now.day, 18, 0);
+      } else {
+        eveningTime = DateTime(now.year, now.month, now.day + 1, 18, 0);
+      }
 
       final dhikrText = eveningDhikr[_random.nextInt(eveningDhikr.length)];
 
@@ -150,12 +154,12 @@ class DhikrNotificationScheduler {
         id: NotificationService.dhikrReminderBaseId + 51,
         dhikrText: 'أذكار المساء: $dhikrText',
         scheduledTime: eveningTime,
-        isRepeating: true,
+        isRepeating: true, // This will repeat daily at 6 PM
       );
 
-      print('تم جدولة تذكير أذكار المساء');
+      print('✅ تم جدولة تذكير أذكار المساء في $eveningTime (يتكرر يومياً)');
     } catch (e) {
-      print('خطأ في جدولة أذكار المساء: $e');
+      print('❌ خطأ في جدولة أذكار المساء: $e');
     }
   }
 

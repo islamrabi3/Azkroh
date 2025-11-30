@@ -1,5 +1,6 @@
 import 'package:adhan/adhan.dart';
 import 'package:azkroh_app/features/core/doaa_model.dart';
+import 'package:azkroh_app/features/core/notification_service.dart';
 import 'package:azkroh_app/features/core/prayer_notification_scheduler.dart';
 import 'package:azkroh_app/features/core/dhikr_notification_scheduler.dart';
 import 'package:azkroh_app/features/core/services/global_location_service.dart';
@@ -88,7 +89,7 @@ class AppCubit extends Cubit<Appstates> {
       sebhaCount++;
       emit(AppSuccessState());
     } catch (error) {
-      print(error.toString());
+      debugPrint(error.toString());
       emit(AppErrorState());
     }
   }
@@ -100,7 +101,7 @@ class AppCubit extends Cubit<Appstates> {
         emit(AppSuccessState());
       }
     } catch (error) {
-      print(error.toString());
+      debugPrint(error.toString());
       emit(AppErrorState());
     }
   }
@@ -125,7 +126,7 @@ class AppCubit extends Cubit<Appstates> {
       sebhaCount = 0;
       emit(AppSuccessState());
     } catch (error) {
-      print(error.toString());
+      debugPrint(error.toString());
       emit(AppErrorState());
     }
   }
@@ -146,7 +147,7 @@ class AppCubit extends Cubit<Appstates> {
         emit(QuranDataFromApiState());
       });
     } catch (e) {
-      print(e.toString());
+      debugPrint(e.toString());
       emit(QuranGettingDataError());
     }
   }
@@ -166,11 +167,11 @@ class AppCubit extends Cubit<Appstates> {
           Coordinates(value.latitude, value.longitude),
           params,
         );
-        print(DateFormat.jm().format(prayerTimes!.fajr));
-        print(DateFormat.jm().format(prayerTimes!.dhuhr));
-        print(DateFormat.jm().format(prayerTimes!.asr));
-        print(DateFormat.jm().format(prayerTimes!.maghrib));
-        print(DateFormat.jm().format(prayerTimes!.isha));
+        debugPrint(DateFormat.jm().format(prayerTimes!.fajr));
+        debugPrint(DateFormat.jm().format(prayerTimes!.dhuhr));
+        debugPrint(DateFormat.jm().format(prayerTimes!.asr));
+        debugPrint(DateFormat.jm().format(prayerTimes!.maghrib));
+        debugPrint(DateFormat.jm().format(prayerTimes!.isha));
 
         emit(GetPrayersTimeState());
       } else {
@@ -182,22 +183,24 @@ class AppCubit extends Cubit<Appstates> {
 
   AzanEntity? azanEntityData;
   List<String> prayerTimeList = [];
-  final PrayerNotificationScheduler _prayerScheduler = PrayerNotificationScheduler();
-  final DhikrNotificationScheduler _dhikrScheduler = DhikrNotificationScheduler();
+  final PrayerNotificationScheduler _prayerScheduler =
+      PrayerNotificationScheduler();
+  final DhikrNotificationScheduler _dhikrScheduler =
+      DhikrNotificationScheduler();
   final GlobalLocationService _locationService = GlobalLocationService();
 
   getPrayerTimeFromApi() async {
     try {
       emit(GetPrayerTimeLoadingState());
-      
+
       // Initialize global location service
       await _locationService.initialize();
-      
-      final position = _locationService.currentPosition ?? 
+
+      final position = _locationService.currentPosition ??
           await LocationHelper.getLocationMethod();
-      
+
       if (position == null) {
-        print('Unable to get location');
+        debugPrint('Unable to get location');
         emit(GetPrayerTimeErrorState());
         return;
       }
@@ -211,28 +214,34 @@ class AppCubit extends Cubit<Appstates> {
           .then((value) async {
         azanEntityData = value;
 
-        print(azanEntityData!.data.timings.fajr);
-        
+        debugPrint(azanEntityData!.data.timings.fajr);
+
         // Schedule prayer notifications
         try {
-          await _prayerScheduler.scheduleAllPrayerNotifications(azanEntityData!);
+          await _prayerScheduler
+              .scheduleAllPrayerNotifications(azanEntityData!);
           await _prayerScheduler.schedulePrayerReminders(azanEntityData!);
-          print('تم جدولة إشعارات الصلاة بنجاح');
-          
+          debugPrint('✅ تم جدولة إشعارات الصلاة بنجاح');
+
           // Initialize dhikr reminders (including morning/evening azkar)
           await _dhikrScheduler.initializeAllDhikrReminders();
-          print('تم تهيئة تذكيرات الذكر بنجاح');
+          debugPrint('✅ تم تهيئة تذكيرات الذكر بنجاح');
+
+          // Log pending notifications for debugging
+          final notificationService = NotificationService();
+          await notificationService.logPendingNotifications();
         } catch (e) {
-          print('خطأ في جدولة الإشعارات: $e');
+          debugPrint('❌ خطأ في جدولة الإشعارات: $e');
+          debugPrint('   Stack trace: ${StackTrace.current}');
         }
-        
+
         emit(GetPrayersTimeState());
       }).catchError((error) {
-        print(error.toString());
+        debugPrint(error.toString());
         emit(GetPrayerTimeErrorState());
       });
     } catch (e) {
-      print(e.toString());
+      debugPrint(e.toString());
       emit(GetPrayerTimeErrorState());
     }
   }
@@ -267,7 +276,7 @@ class AppCubit extends Cubit<Appstates> {
           .then((value) => isQuranFavoriteClicked = false);
       emit(QuranFavoruiteBtnState(isQuranFavoriteClicked));
     } else {
-      print('Is Existed ');
+      debugPrint('Is Existed ');
       emit(QuranFavoruiteBtnState(isQuranFavoriteClicked));
     }
   }

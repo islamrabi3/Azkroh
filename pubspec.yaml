@@ -17,7 +17,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+14
+version: 1.0.1+21
 
 environment:
   sdk: ">=2.18.0 <3.0.0"
@@ -53,8 +53,6 @@ dependencies:
   hijri:
   win32: 3.0.0
 
-  flutter_native_splash: ^2.4.2
-
   # hive section
   hive:
   hive_flutter:
@@ -73,6 +71,7 @@ dependencies:
   just_audio: ^0.9.39
   audio_session: ^0.1.21
   flutter_screenutil: ^5.9.3
+  
 
 dev_dependencies:
   flutter_test:
@@ -81,35 +80,7 @@ dev_dependencies:
   hive_generator: ^2.0.0
   build_runner: ^2.3.3
   flutter_launcher_icons: ^0.14.1
-
-
-flutter_native_splash:
-  # Background colors for light and dark themes
-  color: "#f8f9fa"
-  color_dark: "#1a1a1a"
-  
-  # Main splash image with relative sizing
-  image: assets/images/أذكروه.png
-  image_dark: assets/images/أذكروه.png
-  
-  # Android 12+ configuration for adaptive splash
-  android_12:
-    image: assets/images/أذكروه.png
-    image_dark: assets/images/أذكروه.png
-    icon_background_color: "#f8f9fa"
-    icon_background_color_dark: "#1a1a1a"
-  
-  # Platform-specific configurations
-  android: true
-  ios: true
-  web: true
-  
-  # Responsive sizing - image scales relative to screen size
-  android_gravity: center
-  ios_content_mode: scaleAspectFit
-  
-  # Full screen configuration for modern devices
-  fullscreen: true
+  package_rename: ^1.10.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -119,9 +90,6 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/images/أذكروه.png"
-
-
-
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -143,6 +111,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - shorebird.yaml
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

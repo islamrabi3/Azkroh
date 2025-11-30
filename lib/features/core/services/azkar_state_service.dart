@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service to manage Azkar counts with daily reset logic
@@ -16,7 +17,7 @@ class AzkarStateService {
 
   // Morning Azkar time: After Fajr until sunrise (approx 6 AM to 7:30 AM)
   // Evening Azkar time: After Asr until Maghrib (approx 3 PM to sunset)
-  
+
   /// Check if it's morning Azkar time (after Fajr, before Dhuhr)
   bool isMorningAzkarTime() {
     final now = DateTime.now();
@@ -50,13 +51,19 @@ class AzkarStateService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String key = azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
-      final String dateKey = azkarType == 'morning' ? _morningDateKey : _eveningDateKey;
-      
+      final String key =
+          azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
+      final String dateKey =
+          azkarType == 'morning' ? _morningDateKey : _eveningDateKey;
+
+      // Save counts and date (SharedPreferences auto-commits)
       await prefs.setString(key, jsonEncode(counts));
       await prefs.setString(dateKey, _getTodayDateString());
+
+      debugPrint('✅ Saved Azkar counts for $azkarType: ${counts.length} items');
     } catch (e) {
-      print('Error saving Azkar counts: $e');
+      debugPrint('❌ Error saving Azkar counts: $e');
+      rethrow;
     }
   }
 
@@ -65,39 +72,38 @@ class AzkarStateService {
   Future<Map<String, int>?> loadAzkarCounts({required String azkarType}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String key = azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
-      final String dateKey = azkarType == 'morning' ? _morningDateKey : _eveningDateKey;
-      
+      final String key =
+          azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
+      final String dateKey =
+          azkarType == 'morning' ? _morningDateKey : _eveningDateKey;
+
       final String? savedDate = prefs.getString(dateKey);
       final String todayDate = _getTodayDateString();
-      
+
       // Check if it's a new day
       if (savedDate != todayDate) {
         // Reset counts for new day
         await _clearAzkarCounts(azkarType);
+        debugPrint('🔄 New day detected, resetting $azkarType counts');
         return null;
       }
-      
-      // Check if we're in the correct time period
-      if (azkarType == 'morning' && !isMorningAzkarTime()) {
-        // Morning time has passed, reset
-        return null;
-      }
-      if (azkarType == 'evening' && !isEveningAzkarTime()) {
-        // Evening time has passed, reset
-        return null;
-      }
-      
-      // Load saved counts
+
+      // IMPORTANT: Don't reset if we're still in the same day, even if time period passed
+      // The user should be able to see their progress until the next period starts
+      // Only reset when the next period actually begins
+
+      // Load saved counts if they exist
       final String? countsJson = prefs.getString(key);
       if (countsJson != null) {
         final Map<String, dynamic> decoded = jsonDecode(countsJson);
-        return decoded.map((key, value) => MapEntry(key, value as int));
+        final counts = decoded.map((key, value) => MapEntry(key, value as int));
+        debugPrint('✅ Loaded $azkarType counts: ${counts.length} items');
+        return counts;
       }
-      
+
       return null;
     } catch (e) {
-      print('Error loading Azkar counts: $e');
+      debugPrint('❌ Error loading Azkar counts: $e');
       return null;
     }
   }
@@ -106,10 +112,11 @@ class AzkarStateService {
   Future<void> markAzkarCompleted({required String azkarType}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String key = azkarType == 'morning' ? _morningCompletedKey : _eveningCompletedKey;
+      final String key =
+          azkarType == 'morning' ? _morningCompletedKey : _eveningCompletedKey;
       await prefs.setString(key, _getTodayDateString());
     } catch (e) {
-      print('Error marking Azkar completed: $e');
+      debugPrint('Error marking Azkar completed: $e');
     }
   }
 
@@ -117,11 +124,12 @@ class AzkarStateService {
   Future<bool> isAzkarCompletedToday({required String azkarType}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String key = azkarType == 'morning' ? _morningCompletedKey : _eveningCompletedKey;
+      final String key =
+          azkarType == 'morning' ? _morningCompletedKey : _eveningCompletedKey;
       final String? completedDate = prefs.getString(key);
       return completedDate == _getTodayDateString();
     } catch (e) {
-      print('Error checking Azkar completion: $e');
+      debugPrint('Error checking Azkar completion: $e');
       return false;
     }
   }
@@ -135,13 +143,13 @@ class AzkarStateService {
     try {
       final counts = await loadAzkarCounts(azkarType: azkarType);
       if (counts == null) return 0.0;
-      
+
       int remainingCount = counts.values.fold(0, (sum, count) => sum + count);
       int completedCount = totalRepeatCount - remainingCount;
-      
+
       return (completedCount / totalRepeatCount).clamp(0.0, 1.0);
     } catch (e) {
-      print('Error getting Azkar progress: $e');
+      debugPrint('Error getting Azkar progress: $e');
       return 0.0;
     }
   }
@@ -150,10 +158,11 @@ class AzkarStateService {
   Future<void> _clearAzkarCounts(String azkarType) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String key = azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
+      final String key =
+          azkarType == 'morning' ? _morningAzkarKey : _eveningAzkarKey;
       await prefs.remove(key);
     } catch (e) {
-      print('Error clearing Azkar counts: $e');
+      debugPrint('Error clearing Azkar counts: $e');
     }
   }
 
@@ -166,7 +175,7 @@ class AzkarStateService {
   /// Get remaining time for current Azkar period
   Duration? getRemainingTimeForPeriod() {
     final now = DateTime.now();
-    
+
     if (isMorningAzkarTime()) {
       // End of morning period is 12 PM
       final endTime = DateTime(now.year, now.month, now.day, 12, 0);
@@ -176,7 +185,7 @@ class AzkarStateService {
       final endTime = DateTime(now.year, now.month, now.day, 22, 0);
       return endTime.difference(now);
     }
-    
+
     return null;
   }
 
@@ -184,7 +193,7 @@ class AzkarStateService {
   DateTime getNextAzkarPeriodStart() {
     final now = DateTime.now();
     final hour = now.hour;
-    
+
     if (hour < 4) {
       // Before morning - next is morning today
       return DateTime(now.year, now.month, now.day, 4, 0);
@@ -209,4 +218,3 @@ enum AzkarPeriod {
   evening,
   none,
 }
-

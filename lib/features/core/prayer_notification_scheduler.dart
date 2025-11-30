@@ -1,8 +1,10 @@
 import 'package:azkroh_app/features/core/notification_service.dart';
 import 'package:azkroh_app/features/domain/entity/azan_entity.dart';
+import 'package:flutter/foundation.dart';
 
 class PrayerNotificationScheduler {
-  static final PrayerNotificationScheduler _instance = PrayerNotificationScheduler._internal();
+  static final PrayerNotificationScheduler _instance =
+      PrayerNotificationScheduler._internal();
   factory PrayerNotificationScheduler() => _instance;
   PrayerNotificationScheduler._internal();
 
@@ -24,7 +26,21 @@ class PrayerNotificationScheduler {
           id: NotificationService.fajrNotificationId,
           prayerName: 'الفجر',
           scheduledTime: fajrTime,
-          customMessage: 'حان الآن وقت صلاة الفجر. استيقظ للصلاة وابدأ يومك بذكر الله',
+          customMessage:
+              'حان الآن وقت صلاة الفجر. استيقظ للصلاة وابدأ يومك بذكر الله',
+          repeatDaily: true,
+        );
+      } else {
+        // Schedule for tomorrow if time has passed
+        final tomorrow = today.add(const Duration(days: 1));
+        final fajrTomorrow = _parseTimeString(timings.fajr, tomorrow);
+        await _notificationService.schedulePrayerNotification(
+          id: NotificationService.fajrNotificationId,
+          prayerName: 'الفجر',
+          scheduledTime: fajrTomorrow,
+          customMessage:
+              'حان الآن وقت صلاة الفجر. استيقظ للصلاة وابدأ يومك بذكر الله',
+          repeatDaily: true,
         );
       }
 
@@ -36,6 +52,17 @@ class PrayerNotificationScheduler {
           prayerName: 'الظهر',
           scheduledTime: dhuhrTime,
           customMessage: 'حان الآن وقت صلاة الظهر. توقف عن عملك وتوجه للصلاة',
+          repeatDaily: true,
+        );
+      } else {
+        final tomorrow = today.add(const Duration(days: 1));
+        final dhuhrTomorrow = _parseTimeString(timings.dhuhr, tomorrow);
+        await _notificationService.schedulePrayerNotification(
+          id: NotificationService.dhuhrNotificationId,
+          prayerName: 'الظهر',
+          scheduledTime: dhuhrTomorrow,
+          customMessage: 'حان الآن وقت صلاة الظهر. توقف عن عملك وتوجه للصلاة',
+          repeatDaily: true,
         );
       }
 
@@ -47,6 +74,17 @@ class PrayerNotificationScheduler {
           prayerName: 'العصر',
           scheduledTime: asrTime,
           customMessage: 'حان الآن وقت صلاة العصر. لا تفوت هذه الصلاة المباركة',
+          repeatDaily: true,
+        );
+      } else {
+        final tomorrow = today.add(const Duration(days: 1));
+        final asrTomorrow = _parseTimeString(timings.asr, tomorrow);
+        await _notificationService.schedulePrayerNotification(
+          id: NotificationService.asrNotificationId,
+          prayerName: 'العصر',
+          scheduledTime: asrTomorrow,
+          customMessage: 'حان الآن وقت صلاة العصر. لا تفوت هذه الصلاة المباركة',
+          repeatDaily: true,
         );
       }
 
@@ -58,6 +96,17 @@ class PrayerNotificationScheduler {
           prayerName: 'المغرب',
           scheduledTime: maghribTime,
           customMessage: 'حان الآن وقت صلاة المغرب. اللهم بلغنا ليلة القدر',
+          repeatDaily: true,
+        );
+      } else {
+        final tomorrow = today.add(const Duration(days: 1));
+        final maghribTomorrow = _parseTimeString(timings.maghrib, tomorrow);
+        await _notificationService.schedulePrayerNotification(
+          id: NotificationService.maghribNotificationId,
+          prayerName: 'المغرب',
+          scheduledTime: maghribTomorrow,
+          customMessage: 'حان الآن وقت صلاة المغرب. اللهم بلغنا ليلة القدر',
+          repeatDaily: true,
         );
       }
 
@@ -69,12 +118,23 @@ class PrayerNotificationScheduler {
           prayerName: 'العشاء',
           scheduledTime: ishaTime,
           customMessage: 'حان الآن وقت صلاة العشاء. اختتم يومك بالصلاة والدعاء',
+          repeatDaily: true,
+        );
+      } else {
+        final tomorrow = today.add(const Duration(days: 1));
+        final ishaTomorrow = _parseTimeString(timings.isha, tomorrow);
+        await _notificationService.schedulePrayerNotification(
+          id: NotificationService.ishaNotificationId,
+          prayerName: 'العشاء',
+          scheduledTime: ishaTomorrow,
+          customMessage: 'حان الآن وقت صلاة العشاء. اختتم يومك بالصلاة والدعاء',
+          repeatDaily: true,
         );
       }
 
-      print('تم جدولة جميع إشعارات أوقات الصلاة بنجاح');
+      debugPrint('تم جدولة جميع إشعارات أوقات الصلاة بنجاح');
     } catch (e) {
-      print('خطأ في جدولة إشعارات الصلاة: $e');
+      debugPrint('خطأ في جدولة إشعارات الصلاة: $e');
     }
   }
 
@@ -87,10 +147,12 @@ class PrayerNotificationScheduler {
       // Schedule all prayers for tomorrow
       final fajrTime = _parseTimeString(timings.fajr, tomorrow);
       await _notificationService.schedulePrayerNotification(
-        id: NotificationService.fajrNotificationId + 10, // Different ID for next day
+        id: NotificationService.fajrNotificationId +
+            10, // Different ID for next day
         prayerName: 'الفجر',
         scheduledTime: fajrTime,
-        customMessage: 'حان الآن وقت صلاة الفجر. استيقظ للصلاة وابدأ يومك بذكر الله',
+        customMessage:
+            'حان الآن وقت صلاة الفجر. استيقظ للصلاة وابدأ يومك بذكر الله',
       );
 
       final dhuhrTime = _parseTimeString(timings.dhuhr, tomorrow);
@@ -125,9 +187,9 @@ class PrayerNotificationScheduler {
         customMessage: 'حان الآن وقت صلاة العشاء. اختتم يومك بالصلاة والدعاء',
       );
 
-      print('تم جدولة إشعارات الصلاة لليوم التالي بنجاح');
+      debugPrint('تم جدولة إشعارات الصلاة لليوم التالي بنجاح');
     } catch (e) {
-      print('خطأ في جدولة إشعارات الصلاة لليوم التالي: $e');
+      debugPrint('خطأ في جدولة إشعارات الصلاة لليوم التالي: $e');
     }
   }
 
@@ -140,67 +202,77 @@ class PrayerNotificationScheduler {
 
       // Schedule Fajr reminder
       final fajrTime = _parseTimeString(timings.fajr, today);
-      final fajrReminder = fajrTime.subtract(const Duration(minutes: reminderMinutes));
+      final fajrReminder =
+          fajrTime.subtract(const Duration(minutes: reminderMinutes));
       if (fajrReminder.isAfter(DateTime.now())) {
         await _notificationService.schedulePrayerNotification(
           id: NotificationService.fajrNotificationId + 50,
           prayerName: 'الفجر',
           scheduledTime: fajrReminder,
-          customMessage: 'تذكير: صلاة الفجر خلال $reminderMinutes دقيقة. استعد للصلاة',
+          customMessage:
+              'تذكير: صلاة الفجر خلال $reminderMinutes دقيقة. استعد للصلاة',
         );
       }
 
       // Schedule Dhuhr reminder
       final dhuhrTime = _parseTimeString(timings.dhuhr, today);
-      final dhuhrReminder = dhuhrTime.subtract(const Duration(minutes: reminderMinutes));
+      final dhuhrReminder =
+          dhuhrTime.subtract(const Duration(minutes: reminderMinutes));
       if (dhuhrReminder.isAfter(DateTime.now())) {
         await _notificationService.schedulePrayerNotification(
           id: NotificationService.dhuhrNotificationId + 50,
           prayerName: 'الظهر',
           scheduledTime: dhuhrReminder,
-          customMessage: 'تذكير: صلاة الظهر خلال $reminderMinutes دقيقة. استعد للصلاة',
+          customMessage:
+              'تذكير: صلاة الظهر خلال $reminderMinutes دقيقة. استعد للصلاة',
         );
       }
 
       // Schedule Asr reminder
       final asrTime = _parseTimeString(timings.asr, today);
-      final asrReminder = asrTime.subtract(const Duration(minutes: reminderMinutes));
+      final asrReminder =
+          asrTime.subtract(const Duration(minutes: reminderMinutes));
       if (asrReminder.isAfter(DateTime.now())) {
         await _notificationService.schedulePrayerNotification(
           id: NotificationService.asrNotificationId + 50,
           prayerName: 'العصر',
           scheduledTime: asrReminder,
-          customMessage: 'تذكير: صلاة العصر خلال $reminderMinutes دقيقة. استعد للصلاة',
+          customMessage:
+              'تذكير: صلاة العصر خلال $reminderMinutes دقيقة. استعد للصلاة',
         );
       }
 
       // Schedule Maghrib reminder
       final maghribTime = _parseTimeString(timings.maghrib, today);
-      final maghribReminder = maghribTime.subtract(const Duration(minutes: reminderMinutes));
+      final maghribReminder =
+          maghribTime.subtract(const Duration(minutes: reminderMinutes));
       if (maghribReminder.isAfter(DateTime.now())) {
         await _notificationService.schedulePrayerNotification(
           id: NotificationService.maghribNotificationId + 50,
           prayerName: 'المغرب',
           scheduledTime: maghribReminder,
-          customMessage: 'تذكير: صلاة المغرب خلال $reminderMinutes دقيقة. استعد للصلاة',
+          customMessage:
+              'تذكير: صلاة المغرب خلال $reminderMinutes دقيقة. استعد للصلاة',
         );
       }
 
       // Schedule Isha reminder
       final ishaTime = _parseTimeString(timings.isha, today);
-      final ishaReminder = ishaTime.subtract(const Duration(minutes: reminderMinutes));
+      final ishaReminder =
+          ishaTime.subtract(const Duration(minutes: reminderMinutes));
       if (ishaReminder.isAfter(DateTime.now())) {
         await _notificationService.schedulePrayerNotification(
           id: NotificationService.ishaNotificationId + 50,
           prayerName: 'العشاء',
           scheduledTime: ishaReminder,
-          customMessage: 'تذكير: صلاة العشاء خلال $reminderMinutes دقيقة. استعد للصلاة',
+          customMessage:
+              'تذكير: صلاة العشاء خلال $reminderMinutes دقيقة. استعد للصلاة',
         );
       }
 
-      print('تم جدولة تذكيرات الصلاة بنجاح');
+      debugPrint('تم جدولة تذكيرات الصلاة بنجاح');
     } catch (e) {
-      print('خطأ في جدولة تذكيرات الصلاة: $e');
+      debugPrint('خطأ في جدولة تذكيرات الصلاة: $e');
     }
   }
 
@@ -208,11 +280,12 @@ class PrayerNotificationScheduler {
   DateTime _parseTimeString(String timeString, DateTime date) {
     try {
       // Remove any extra characters and parse time
-      final cleanTime = timeString.trim().split(' ')[0]; // Remove timezone info if present
+      final cleanTime =
+          timeString.trim().split(' ')[0]; // Remove timezone info if present
       final timeParts = cleanTime.split(':');
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
-      
+
       return DateTime(
         date.year,
         date.month,
@@ -221,32 +294,47 @@ class PrayerNotificationScheduler {
         minute,
       );
     } catch (e) {
-      print('خطأ في تحليل الوقت: $timeString - $e');
+      debugPrint('خطأ في تحليل الوقت: $timeString - $e');
       return DateTime.now();
     }
   }
 
   /// Cancel all prayer notifications
   Future<void> _cancelAllPrayerNotifications() async {
-    await _notificationService.cancelNotification(NotificationService.fajrNotificationId);
-    await _notificationService.cancelNotification(NotificationService.dhuhrNotificationId);
-    await _notificationService.cancelNotification(NotificationService.asrNotificationId);
-    await _notificationService.cancelNotification(NotificationService.maghribNotificationId);
-    await _notificationService.cancelNotification(NotificationService.ishaNotificationId);
-    
+    await _notificationService
+        .cancelNotification(NotificationService.fajrNotificationId);
+    await _notificationService
+        .cancelNotification(NotificationService.dhuhrNotificationId);
+    await _notificationService
+        .cancelNotification(NotificationService.asrNotificationId);
+    await _notificationService
+        .cancelNotification(NotificationService.maghribNotificationId);
+    await _notificationService
+        .cancelNotification(NotificationService.ishaNotificationId);
+
     // Cancel reminders
-    await _notificationService.cancelNotification(NotificationService.fajrNotificationId + 50);
-    await _notificationService.cancelNotification(NotificationService.dhuhrNotificationId + 50);
-    await _notificationService.cancelNotification(NotificationService.asrNotificationId + 50);
-    await _notificationService.cancelNotification(NotificationService.maghribNotificationId + 50);
-    await _notificationService.cancelNotification(NotificationService.ishaNotificationId + 50);
-    
+    await _notificationService
+        .cancelNotification(NotificationService.fajrNotificationId + 50);
+    await _notificationService
+        .cancelNotification(NotificationService.dhuhrNotificationId + 50);
+    await _notificationService
+        .cancelNotification(NotificationService.asrNotificationId + 50);
+    await _notificationService
+        .cancelNotification(NotificationService.maghribNotificationId + 50);
+    await _notificationService
+        .cancelNotification(NotificationService.ishaNotificationId + 50);
+
     // Cancel next day notifications
-    await _notificationService.cancelNotification(NotificationService.fajrNotificationId + 10);
-    await _notificationService.cancelNotification(NotificationService.dhuhrNotificationId + 10);
-    await _notificationService.cancelNotification(NotificationService.asrNotificationId + 10);
-    await _notificationService.cancelNotification(NotificationService.maghribNotificationId + 10);
-    await _notificationService.cancelNotification(NotificationService.ishaNotificationId + 10);
+    await _notificationService
+        .cancelNotification(NotificationService.fajrNotificationId + 10);
+    await _notificationService
+        .cancelNotification(NotificationService.dhuhrNotificationId + 10);
+    await _notificationService
+        .cancelNotification(NotificationService.asrNotificationId + 10);
+    await _notificationService
+        .cancelNotification(NotificationService.maghribNotificationId + 10);
+    await _notificationService
+        .cancelNotification(NotificationService.ishaNotificationId + 10);
   }
 
   /// Get next prayer time and name
@@ -285,7 +373,7 @@ class PrayerNotificationScheduler {
         'remaining': fajrTomorrow.difference(now),
       };
     } catch (e) {
-      print('خطأ في الحصول على معلومات الصلاة التالية: $e');
+      debugPrint('خطأ في الحصول على معلومات الصلاة التالية: $e');
       return null;
     }
   }
@@ -297,7 +385,8 @@ class PrayerNotificationScheduler {
   }
 
   /// Enable or disable prayer notifications
-  Future<void> setPrayerNotificationsEnabled(bool enabled, AzanEntity? azanEntity) async {
+  Future<void> setPrayerNotificationsEnabled(
+      bool enabled, AzanEntity? azanEntity) async {
     final prefs = await _notificationService.loadNotificationPreferences();
     await _notificationService.saveNotificationPreferences(
       prayerNotifications: enabled,

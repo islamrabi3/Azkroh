@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Azkroh V1</string>
+	<string>اذكروه</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>azkroh_v1</string>
+	<string>اذكروه</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -82,6 +82,8 @@
 	<string>This app needs location access to provide location-based features like prayer times and Qibla direction.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>This app needs notification permission to send prayer time reminders and dhikr notifications.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app uses audio playback features for Quran recitation and Azan (prayer call). Microphone access is required by the audio player library to ensure proper audio session management.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

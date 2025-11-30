@@ -19,14 +19,14 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
   late AnimationController _mainController;
   late AnimationController _pulseController;
   late AnimationController _particleController;
-  
+
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<double> _textOpacity;
   late Animation<Offset> _textSlide;
   late Animation<double> _progressOpacity;
   late Animation<double> _pulseAnimation;
-  
+
   String _loadingText = 'جاري التحميل...';
   double _loadingProgress = 0.0;
 
@@ -36,12 +36,12 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ));
-    
+
     _initializeAnimations();
     _generateParticles();
     _startLoading();
@@ -126,17 +126,17 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
   Future<void> _startLoading() async {
     await _loadStep('تهيئة التطبيق...', 0.2);
     await _loadStep('جاري تحديد الموقع...', 0.4);
-    
+
     try {
       await GlobalLocationService().initialize();
     } catch (e) {
-      print('Location initialization error: $e');
+      debugPrint('Location initialization error: $e');
     }
-    
+
     await _loadStep('تحميل البيانات...', 0.6);
     await _loadStep('جاري التحضير...', 0.8);
     await _loadStep('تم!', 1.0);
-    
+
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -159,11 +159,11 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
     setState(() {
       _loadingText = text;
     });
-    
+
     final startProgress = _loadingProgress;
     const steps = 20;
     final increment = (progress - startProgress) / steps;
-    
+
     for (int i = 0; i < steps; i++) {
       await Future.delayed(const Duration(milliseconds: 30));
       if (mounted) {
@@ -216,7 +216,6 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
                 );
               },
             ),
-            
             Positioned(
               top: -100.h,
               right: -100.w,
@@ -232,16 +231,15 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
               left: -80.w,
               child: _buildDecorativeCircle(180.r, 0.04),
             ),
-            
             SafeArea(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Spacer(flex: 2),
-                    
                     AnimatedBuilder(
-                      animation: Listenable.merge([_mainController, _pulseController]),
+                      animation:
+                          Listenable.merge([_mainController, _pulseController]),
                       builder: (context, child) {
                         return Transform.scale(
                           scale: _logoScale.value * _pulseAnimation.value,
@@ -252,9 +250,7 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
                         );
                       },
                     ),
-                    
                     SizedBox(height: 40.h),
-                    
                     AnimatedBuilder(
                       animation: _mainController,
                       builder: (context, child) {
@@ -267,9 +263,7 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
                         );
                       },
                     ),
-                    
                     const Spacer(),
-                    
                     AnimatedBuilder(
                       animation: _mainController,
                       builder: (context, child) {
@@ -279,7 +273,6 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
                         );
                       },
                     ),
-                    
                     SizedBox(height: 60.h),
                   ],
                 ),

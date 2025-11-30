@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -66,7 +67,7 @@ class GlobalLocationService {
 
       return _currentPosition;
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
       return _currentPosition;
     }
   }
@@ -190,7 +191,7 @@ class GlobalLocationService {
 
       _timezoneName ??= 'UTC';
     } catch (e) {
-      print('Error setting timezone: $e');
+      debugPrint('Error setting timezone: $e');
       _timezoneName = 'UTC';
     }
   }
@@ -206,7 +207,7 @@ class GlobalLocationService {
       await prefs.setInt(
           'location_timestamp', DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
-      print('Error caching location: $e');
+      debugPrint('Error caching location: $e');
     }
   }
 
@@ -240,7 +241,7 @@ class GlobalLocationService {
         }
       }
     } catch (e) {
-      print('Error loading cached location: $e');
+      debugPrint('Error loading cached location: $e');
     }
   }
 

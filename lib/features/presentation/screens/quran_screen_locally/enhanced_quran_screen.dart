@@ -650,29 +650,84 @@ class _EnhancedSurahScreenState extends State<EnhancedSurahScreen> {
   }
 
   void _scrollToVerse(int verseNumber) {
+    // Try multiple approaches for reliable scrolling
     final key = _verseKeys[verseNumber];
+
     if (key?.currentContext != null) {
-      // Use Scrollable.ensureVisible for accurate scrolling
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 500),
+      // Method 1: Use Scrollable.ensureVisible
+      try {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+          alignment:
+              0.2, // Position verse at 20% from top for better visibility
+        );
+        return;
+      } catch (e) {
+        debugPrint('Scrollable.ensureVisible failed: $e');
+      }
+    }
+
+    // Method 2: Use ScrollController for far positions
+    if (_scrollController.hasClients) {
+      // Estimate position based on verse number
+      // Average verse height is approximately 150-200 pixels
+      final estimatedPosition = (verseNumber - 1) * 180.0;
+
+      _scrollController
+          .animateTo(
+        estimatedPosition.clamp(
+            0.0, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 800),
         curve: Curves.easeInOut,
-        alignment: 0.3, // Position verse at 30% from top of screen
-      );
-    } else {
-      // Fallback: try again after a short delay
-      Future.delayed(const Duration(milliseconds: 200), () {
-        final retryKey = _verseKeys[verseNumber];
-        if (retryKey?.currentContext != null) {
+      )
+          .then((_) {
+        // After scrolling, try to fine-tune with ensureVisible
+        Future.delayed(const Duration(milliseconds: 300), () {
+          final retryKey = _verseKeys[verseNumber];
+          if (retryKey?.currentContext != null) {
+            try {
+              Scrollable.ensureVisible(
+                retryKey!.currentContext!,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
+                alignment: 0.2,
+              );
+            } catch (e) {
+              debugPrint('Fine-tune scroll failed: $e');
+            }
+          }
+        });
+      });
+      return;
+    }
+
+    // Method 3: Retry after delay if context not ready
+    Future.delayed(const Duration(milliseconds: 500), () {
+      final retryKey = _verseKeys[verseNumber];
+      if (retryKey?.currentContext != null) {
+        try {
           Scrollable.ensureVisible(
             retryKey!.currentContext!,
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 800),
             curve: Curves.easeInOut,
-            alignment: 0.3,
+            alignment: 0.2,
           );
+        } catch (e) {
+          debugPrint('Retry scroll failed: $e');
         }
-      });
-    }
+      } else if (_scrollController.hasClients) {
+        // Final fallback: use estimated position
+        final estimatedPosition = (verseNumber - 1) * 180.0;
+        _scrollController.animateTo(
+          estimatedPosition.clamp(
+              0.0, _scrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   Future<void> _saveLastRead(int verseNumber) async {
