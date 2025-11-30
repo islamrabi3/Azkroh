@@ -81,6 +81,12 @@ android {
         }
     }
 
+    // Support for 16 KB memory page sizes (Android 15+ requirement)
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 flutter {

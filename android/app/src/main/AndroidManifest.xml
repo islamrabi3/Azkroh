@@ -24,7 +24,8 @@
         android:icon="@mipmap/launcher_icon"
         android:label="أذكروه"
         android:usesCleartextTraffic="true"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:extractNativeLibs="false">
 
         <!-- Boot Receiver for rescheduling notifications after device restart -->
         <receiver
