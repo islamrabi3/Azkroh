@@ -1,9 +1,10 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:azkroh_app/features/core/services/tafsir_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qcf_quran_plus/qcf_quran_plus.dart' as qcf;
-import 'package:share_plus/share_plus.dart';
 
 /// Removes the trailing ayah number / line break from the Hafs text.
 String cleanVerseText(String text) =>
@@ -299,7 +300,7 @@ class _TafsirSheetState extends State<TafsirSheet> {
                                     tooltip: tr('مشاركة'),
                                     icon: Icon(Icons.share_rounded,
                                         color: _muted, size: 20),
-                                    onPressed: () => Share.share(
+                                    onPressed: () => shareText(context, 
                                         '﴿$verseText﴾\n\n${r.book.name}:\n${r.text}'),
                                   ),
                                 ],
@@ -348,7 +349,7 @@ class _TafsirSheetState extends State<TafsirSheet> {
 
   Widget _loading() => Padding(
         padding: EdgeInsets.all(32),
-        child: Center(child: CircularProgressIndicator(color: _accent)),
+        child: Center(child: AppLoader(color: _accent)),
       );
 
   Widget _error(String msg) => Padding(

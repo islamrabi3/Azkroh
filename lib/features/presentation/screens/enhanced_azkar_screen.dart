@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/doaa_model.dart';
 import 'package:azkroh_app/features/core/services/azkar_state_service.dart';
@@ -7,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:share_plus/share_plus.dart';
 
 class EnhancedAzkarScreen extends StatefulWidget {
   const EnhancedAzkarScreen({
@@ -244,7 +245,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
           child: Scaffold(
             backgroundColor: AppStyle.softGray,
             body: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: AppLoader())
                 : CustomScrollView(
                     slivers: [
                       _buildAppBar(),
@@ -668,24 +669,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                                   final text =
                                       '${doaa.content ?? ''}\n\n${doaa.desc ?? ''}\n\nمن تطبيق أذكروه';
 
-                                  // Get the button's position for iPad share sheet
-                                  final RenderBox? box =
-                                      context.findRenderObject() as RenderBox?;
-                                  final Offset position =
-                                      box?.localToGlobal(Offset.zero) ??
-                                          Offset.zero;
-                                  final Size size = box?.size ?? Size.zero;
-
-                                  await Share.share(
-                                    text,
-                                    subject: 'ذكر من تطبيق أذكروه',
-                                    sharePositionOrigin: Rect.fromLTWH(
-                                      position.dx,
-                                      position.dy,
-                                      size.width,
-                                      size.height,
-                                    ),
-                                  );
+                                  await shareText(context, text);
                                   debugPrint('تمت المشاركة بنجاح');
                                 } catch (e) {
                                   debugPrint('خطأ في المشاركة: $e');

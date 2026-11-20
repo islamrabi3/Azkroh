@@ -1,3 +1,7 @@
+import 'package:azkroh_app/features/core/notification_router.dart';
+import 'package:azkroh_app/features/presentation/screens/listen/listen_screen.dart';
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/presentation/screens/support_sheet.dart';
 import 'package:azkroh_app/features/core/notification_service.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'dart:async';
@@ -57,6 +61,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
   DateTime _now = DateTime.now();
   int _hijriAdjust = 0;
   int? _lastPage;
+  int? _lastSurah;
+  int? _lastVerse;
   int? _bmSurah;
   int? _bmVerse;
 
@@ -70,6 +76,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
     _loadPrefs();
     AppStoreService().registerLaunchAndMaybeAskReview();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      NotificationRouter.homeReady();
       final granted = await NotificationService().requestPermissions();
       if (granted && mounted) {
         // Schedule now that we're allowed to.
@@ -85,6 +92,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
     setState(() {
       _hijriAdjust = prefs.getInt('hijri_adjust') ?? 0;
       _lastPage = prefs.getInt('mushaf_last_page');
+      _lastSurah = prefs.getInt('last_ayah_surah');
+      _lastVerse = prefs.getInt('last_ayah_verse');
       _bmSurah = prefs.getInt('mushaf_bookmark_page') == null
           ? null
           : prefs.getInt('bookmarkedSurah');
@@ -179,6 +188,10 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       if (_bmSurah != null && _bmVerse != null) ...[
                         SizedBox(height: 10),
                         _bookmarkTile(),
+                      ],
+                      if (showSupportCard) ...[
+                        const SizedBox(height: 14),
+                        const SupportCard(),
                       ],
                       SizedBox(height: 26),
                       _sectionTitle(tr('الأذكار'), Icons.auto_awesome_rounded,
@@ -373,7 +386,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
         ),
         alignment: Alignment.center,
         child: loading
-            ? CircularProgressIndicator(color: AppStyle.primaryGreen)
+            ? AppLoader(color: AppStyle.primaryGreen)
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -548,11 +561,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
       _Action(tr('القبلة'), Icons.explore_outlined, Color(0xFF6A4C93),
           () => navigateTo(context, QibalScreen())),
       _Action(tr('السبحة'), Icons.fingerprint_rounded, Color(0xFFA8842C),
-          () => navigateTo(context, Sebha())),
+          () => navigateTo(context, const Sebha())),
       _Action(tr('الإذاعة'), Icons.radio_outlined, Color(0xFFB3423A),
           () => navigateTo(context, RadioScreen())),
-      _Action(tr('التقويم'), Icons.calendar_month_outlined, Color(0xFF2E7D6B),
-          () => navigateTo(context, EnhancedHijriScreen())),
+      _Action(tr('الاستماع'), Icons.headphones_rounded, Color(0xFF2E7D6B),
+          () => navigateTo(context, const ListenScreen())),
       _Action(tr('الإعدادات'), Icons.tune_rounded, Color(0xFF55606B),
           () async {
         await navigateTo(context, NotificationSettingsScreen());
@@ -615,10 +628,21 @@ class _HomePageScreenState extends State<HomePageScreen> {
     final page = (_lastPage ?? 1).clamp(1, 604);
     String surah = tr('الفاتحة');
     int juz = 1;
+    String? ayahLabel;
     try {
-      final entry = qcf.getPageData(page).first as Map;
-      surah = surahName(entry['surah'] as int);
-      juz = qcf.getJuzNumber(entry['surah'] as int, entry['start'] as int);
+      int s = (qcf.getPageData(page).first as Map)['surah'] as int;
+      int v = (qcf.getPageData(page).first as Map)['start'] as int;
+      // Prefer the exact ayah the user stopped at, when it is on this page
+      // (a page can hold the end of one surah and the start of the next).
+      if (_lastSurah != null &&
+          _lastVerse != null &&
+          qcf.getPageNumber(_lastSurah!, _lastVerse!) == page) {
+        s = _lastSurah!;
+        v = _lastVerse!;
+        ayahLabel = '${tr('الآية')} ${arNum(v)}';
+      }
+      surah = surahName(s);
+      juz = qcf.getJuzNumber(s, v);
     } catch (_) {}
     final progress = page / 604;
 
@@ -653,7 +677,10 @@ class _HomePageScreenState extends State<HomePageScreen> {
                             color: AppStyle.darkGreen,
                             fontSize: 19,
                             fontWeight: FontWeight.w700)),
-                    Text('${tr('الجزء')} ${arNum(juz)} • ${tr('صفحة')} ${arNum(page)}',
+                    Text(
+                        ayahLabel != null
+                            ? '$ayahLabel • ${tr('الجزء')} ${arNum(juz)} • ${tr('صفحة')} ${arNum(page)}'
+                            : '${tr('الجزء')} ${arNum(juz)} • ${tr('صفحة')} ${arNum(page)}',
                         style: TextStyle(
                             color: AppStyle.textLight, fontSize: 12.5)),
                     SizedBox(height: 8),
@@ -837,7 +864,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
             ),
             alignment: Alignment.center,
             child:
-                CircularProgressIndicator(color: AppStyle.primaryGreen),
+                AppLoader(color: AppStyle.primaryGreen),
           );
         }
         return HadithCard(

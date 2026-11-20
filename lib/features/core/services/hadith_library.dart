@@ -84,6 +84,9 @@ class HadithLibrary {
     final exact = <int>[];
     final partial = <int>[];
     for (int i = 0; i < d.norm.length; i++) {
+      // Yield to the UI every few thousand texts so a search over the whole
+      // library never freezes the app.
+      if (i % 3000 == 2999) await Future<void>.delayed(Duration.zero);
       final t = d.norm[i];
       if (!t.contains(words.first)) continue;
       bool all = true;

@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -172,8 +173,7 @@ class _LocationPickerState extends State<_LocationPicker> {
                         ? SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: Colors.white))
+                            child: AppLoader(size: 22, color: Colors.white))
                         : Icon(Icons.my_location_rounded,
                             color: Colors.white),
                     title: Text(tr('تحديد موقعي تلقائياً (GPS)'),
@@ -207,8 +207,7 @@ class _LocationPickerState extends State<_LocationPicker> {
               Expanded(
                 child: _loading
                     ? Center(
-                        child: CircularProgressIndicator(
-                            color: AppStyle.primaryGreen))
+                        child: AppLoader(color: AppStyle.primaryGreen))
                     : _error != null
                         ? Center(child: Text(_error!))
                         : ListView.separated(

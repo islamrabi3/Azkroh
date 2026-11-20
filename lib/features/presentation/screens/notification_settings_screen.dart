@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'dart:io';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/dhikr_notification_scheduler.dart';
@@ -14,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hijri/hijri_calendar.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// App settings. Every change is applied immediately.
@@ -227,7 +228,7 @@ class _NotificationSettingsScreenState
         ),
         body: _loading
             ? const Center(
-                child: CircularProgressIndicator(color: AppStyle.primaryGreen))
+                child: AppLoader(color: AppStyle.primaryGreen))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                 children: [
@@ -295,7 +296,7 @@ class _NotificationSettingsScreenState
                         () => AppStoreService().openRating()),
                     _nav(Icons.ios_share_rounded, tr('شارك التطبيق'),
                         tr('الدال على الخير كفاعله'), () {
-                      Share.share(
+                      shareText(context, 
                           '${tr('تطبيق أذكروه: القرآن الكريم والأذكار ومواقيت الصلاة')}\n'
                           '${Platform.isIOS ? 'https://apps.apple.com/app/id${AppStoreService.appStoreId}' : 'https://play.google.com/store/apps/details?id=com.islamsalemco.azkroh'}');
                     }),

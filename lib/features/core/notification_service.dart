@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'dart:io';
 import 'package:azkroh_app/features/core/notification_background_handler.dart';
@@ -144,7 +145,24 @@ class NotificationService {
     }
   }
 
+  /// Payload of the notification that launched the app, if any.
+  Future<String?> launchPayload() async {
+    try {
+      final d = await _flutterLocalNotificationsPlugin
+          .getNotificationAppLaunchDetails();
+      if (d?.didNotificationLaunchApp ?? false) {
+        final p = d!.notificationResponse?.payload;
+        if (p != null && p.startsWith('prayer_') && Platform.isIOS) {
+          _playAzanForPrayer(p.replaceFirst('prayer_', ''));
+        }
+        return p;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   void _handleNotificationNavigation(String payload) {
+    NotificationRouter.handle(payload);
     // On iOS a notification sound is limited to 30 seconds, so when the user
     // opens a prayer notification we continue with the full Azan in-app.
     if (payload.startsWith('prayer_') && Platform.isIOS) {

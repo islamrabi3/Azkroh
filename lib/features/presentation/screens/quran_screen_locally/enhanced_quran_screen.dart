@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
@@ -76,7 +77,7 @@ class _EnhancedQuranScreenState extends State<EnhancedQuranScreen>
       child: Scaffold(
         body: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: AppStyle.primaryGreen))
+                child: AppLoader(color: AppStyle.primaryGreen))
             : CustomScrollView(
                 slivers: [
                   _buildAppBar(),

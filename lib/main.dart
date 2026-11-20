@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/cacheHelper.dart';
 import 'package:azkroh_app/features/core/methods/hive_helper.dart';
@@ -7,6 +8,7 @@ import 'package:azkroh_app/features/presentation/cubit/bloc_observer.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/screens/professional_splash_screen.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
+import 'package:azkroh_app/features/core/services/media_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hijri/hijri_calendar.dart';
@@ -33,6 +35,8 @@ void main() async {
 
   // Initialize notification service
   await NotificationService().initialize();
+  // App launched by tapping a notification: open its screen after the splash.
+  NotificationRouter.handle(await NotificationService().launchPayload());
 
   await CacheHelper.init();
 
@@ -51,6 +55,9 @@ void main() async {
   await Hive.openBox('box_store');
   await Hive.openBox('fav');
   await Hive.openBox('quran_box');
+
+  // Lock-screen / notification media controls for radio and Listen.
+  await MediaHandler.init();
 
   runApp(const MyApp());
 }
@@ -140,6 +147,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           child: ValueListenableBuilder<String>(
             valueListenable: AppLocale.code,
             builder: (context, code, _) => MaterialApp(
+              navigatorKey: NotificationRouter.navigatorKey,
               debugShowCheckedModeBanner: false,
               title: 'أذكروه',
               locale: Locale(code),

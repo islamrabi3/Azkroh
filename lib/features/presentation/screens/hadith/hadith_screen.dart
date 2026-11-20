@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'dart:async';
 
@@ -5,9 +7,9 @@ import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/services/hadith_library.dart';
 import 'package:azkroh_app/features/core/services/hadith_service.dart';
 import 'package:flutter/material.dart';
+import 'package:azkroh_app/features/core/widgets/paged_list.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 
 String _ar(Object n) => AppLocale.digits(n);
 
@@ -266,43 +268,38 @@ class _HadithScreenState extends State<HadithScreen> {
                 '${tr('جرّب كلمة أخرى أو جزءاً أقصر من النص.')}'),
           );
         }
-        return SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (_, i) {
-                if (i == 0) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      children: [
-                        Text(
-                          r.total > r.items.length
-                              ? '${tr('أول')} ${_ar(r.items.length)} ${tr('من')} ${_ar(r.total)} ${tr('حديثاً')}'
-                              : '${_ar(r.total)} ${tr('حديثاً')}',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppStyle.textDark),
-                        ),
-                        Spacer(),
-                        Text('${tr('المصدر')}: ${r.source}',
-                            style: TextStyle(
-                                color: AppStyle.textLight, fontSize: 12)),
-                      ],
+        return SliverMainAxisGroup(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 10),
+                child: Row(
+                  children: [
+                    Text(
+                      r.total > r.items.length
+                          ? '${tr('أول')} ${_ar(r.items.length)} ${tr('من')} ${_ar(r.total)} ${tr('حديثاً')}'
+                          : '${_ar(r.total)} ${tr('حديثاً')}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppStyle.textDark),
                     ),
-                  );
-                }
-                return Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: HadithCard(
-                    hadith: r.items[i - 1],
-                    collapsible: true,
-                  ),
-                );
-              },
-              childCount: r.items.length + 1,
+                    Spacer(),
+                    Text('${tr('المصدر')}: ${r.source}',
+                        style: TextStyle(
+                            color: AppStyle.textLight, fontSize: 12)),
+                  ],
+                ),
+              ),
             ),
-          ),
+            PagedSliverList<Hadith>(
+              items: r.items,
+              pageSize: 15,
+              spacing: 12,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              itemBuilder: (_, h, __) =>
+                  HadithCard(hadith: h, collapsible: true),
+            ),
+          ],
         );
       },
     );
@@ -378,7 +375,7 @@ class _HadithScreenState extends State<HadithScreen> {
   Widget _loading() => Padding(
         padding: EdgeInsets.all(32),
         child: Center(
-            child: CircularProgressIndicator(color: AppStyle.primaryGreen)),
+            child: AppLoader(color: AppStyle.primaryGreen)),
       );
 
   Widget _empty(String msg, {IconData icon = Icons.search_off_rounded}) {
@@ -609,7 +606,7 @@ class _HadithCardState extends State<HadithCard> {
                     tooltip: tr('مشاركة'),
                     icon: Icon(Icons.ios_share_rounded,
                         color: AppStyle.textLight, size: 21),
-                    onPressed: () => Share.share(h.shareText()),
+                    onPressed: () => shareText(context, h.shareText()),
                   ),
                 ],
               ),

@@ -268,9 +268,12 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
   }
 }
 
-/// App emblem: gold eight-pointed star with an open book.
+/// App logo: the praying figure on the emerald / gold star background
+/// (same artwork as the launcher icon).
 class AppEmblem extends StatelessWidget {
   final double size;
+
+  /// Kept for API compatibility; the logo has its own background.
   final Color background;
 
   const AppEmblem(
@@ -278,23 +281,33 @@ class AppEmblem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: Size.square(size),
-            painter: const IslamicStarPainter(color: Color(0xFFD4AF37)),
+    final radius = BorderRadius.circular(size * 0.23);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(
+            color: const Color(0xFFD4AF37).withOpacity(0.55),
+            width: size >= 100 ? 2 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0B3D33).withOpacity(0.28),
+            blurRadius: size * 0.18,
+            offset: Offset(0, size * 0.06),
           ),
-          Container(
-            width: size * 0.64,
-            height: size * 0.64,
-            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-          ),
-          Icon(Icons.menu_book_rounded,
-              color: const Color(0xFFD4AF37), size: size * 0.3),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Image.asset(
+          'assets/images/app_icon.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          cacheWidth: (size * 3).round(),
+        ),
       ),
     );
   }

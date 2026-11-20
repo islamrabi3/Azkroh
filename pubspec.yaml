@@ -71,6 +71,7 @@ dependencies:
   audioplayers:
   just_audio: ^0.9.39
   audio_session: ^0.1.21
+  audio_service: ^0.18.15
   flutter_screenutil: ^5.9.3
   qcf_quran_plus: ^0.1.1
   flutter_timezone: ^5.1.1
@@ -79,6 +80,7 @@ dependencies:
   in_app_review: ^2.0.12
   upgrader: ^11.0.0
   in_app_update: ^4.2.5
+  showcaseview: ^5.1.0
   
 
 dev_dependencies:
@@ -94,11 +96,12 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/أذكروه.png"
+  image_path: "assets/branding/azkroh_icon_1024.png"
   min_sdk_android: 21
   remove_alpha_ios: true
-  adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/images/أذكروه.png"
+  adaptive_icon_background: "assets/branding/azkroh_icon_adaptive_bg.png"
+  adaptive_icon_foreground: "assets/branding/azkroh_icon_adaptive_fg.png"
+  adaptive_icon_foreground_inset: 0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

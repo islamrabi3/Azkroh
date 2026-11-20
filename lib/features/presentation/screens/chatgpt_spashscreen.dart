@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -119,10 +120,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                 ),
                 SizedBox(height: 50),
                 // مؤشر التحميل
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
+                AppLoader(size: 22),
               ],
             ),
           ),

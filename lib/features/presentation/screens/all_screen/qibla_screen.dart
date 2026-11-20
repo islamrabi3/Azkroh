@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -176,10 +177,7 @@ class _QibalScreenState extends State<QibalScreen>
           SizedBox(
             width: 60.r,
             height: 60.r,
-            child: const CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
+            child: AppLoader(size: 22, color: Colors.white),
           ),
           SizedBox(height: 20.h),
           Text(

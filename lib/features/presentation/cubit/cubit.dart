@@ -77,7 +77,7 @@ class AppCubit extends Cubit<Appstates> {
 
   List<Widget> screens = [
     const EnhancedQuranScreen(),
-    Sebha(),
+    const Sebha(),
     const PrayerScreen(),
     const RadioScreen(),
     const QibalScreen(),
@@ -299,7 +299,8 @@ class AppCubit extends Cubit<Appstates> {
 
   Future<void> shareMethod(shareText) async {
     try {
-      await Share.share(shareText);
+      await Share.share(shareText,
+          sharePositionOrigin: const Rect.fromLTWH(0, 0, 1, 1));
       emit(ShareTextState());
     } catch (e) {
       throw e.toString();

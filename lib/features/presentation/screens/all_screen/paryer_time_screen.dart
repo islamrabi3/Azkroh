@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:azkroh_app/features/presentation/screens/location_picker_sheet.dart';
 import 'dart:async';
@@ -172,7 +173,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
         backgroundColor: AppStyle.background,
         body: _loading
             ? Center(
-                child: CircularProgressIndicator(color: AppStyle.primaryGreen))
+                child: AppLoader(color: AppStyle.primaryGreen))
             : _coords == null
                 ? _noLocation()
                 : CustomScrollView(

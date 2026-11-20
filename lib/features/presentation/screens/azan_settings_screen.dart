@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'dart:async';
 
 import 'package:azkroh_app/features/core/appstyle.dart';
@@ -132,7 +133,7 @@ class _AzanSettingsScreenState extends State<AzanSettingsScreen> {
         ),
         body: _loading
             ? const Center(
-                child: CircularProgressIndicator(color: AppStyle.primaryGreen))
+                child: AppLoader(color: AppStyle.primaryGreen))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                 children: [

@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/methods/methods.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
@@ -90,7 +91,7 @@ class QuranScreen extends StatelessWidget {
                     itemCount: cubit.quranEntity!.data.listOfSurahs.length,
                   )
                 : const Center(
-                    child: CircularProgressIndicator(),
+                    child: AppLoader(),
                   ),
           ),
         );

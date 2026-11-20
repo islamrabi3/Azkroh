@@ -26,7 +26,7 @@ class AzanAudioService {
       'sound': 'azan',
     },
     'makkah': {
-      'name': 'الحرم المكي - الشيخ علي ملا',
+      'name': 'الحرم المكي',
       'desc': 'أذان المسجد الحرام',
       'sound': 'azan_makkah',
     },

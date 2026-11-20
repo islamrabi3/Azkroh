@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:flutter/foundation.dart';
 import 'package:azkroh_app/features/core/services/prayer_times_service.dart';
@@ -101,11 +102,13 @@ class DhikrNotificationScheduler {
           scheduledTime = scheduledTime.add(const Duration(days: 1));
         }
 
+        final text = _getRandomDhikr();
         await _notificationService.scheduleDhikrReminder(
           id: NotificationService.dhikrReminderBaseId + i,
-          dhikrText: _getRandomDhikr(),
+          dhikrText: text,
           scheduledTime: scheduledTime,
           isRepeating: true,
+          payload: payloadFor(text, scheduledTime),
         );
       }
 
@@ -209,10 +212,11 @@ class DhikrNotificationScheduler {
 
       await _notificationService.scheduleDhikrReminder(
         id: NotificationService.dhikrReminderBaseId + 52,
-        dhikrText:
-            'تذكير: اقرأ شيئاً من القرآن الكريم اليوم واحتسب الأجر عند الله',
+        title: '📖 ${tr('وردك من القرآن')}',
+        dhikrText: tr('أكمل وردك اليومي من القرآن الكريم من حيث توقفت، واحتسب الأجر عند الله'),
         scheduledTime: quranTime,
         isRepeating: true,
+        payload: NotificationPayload.mushafLastRead,
       );
 
       print('تم جدولة تذكير قراءة القرآن');
@@ -226,45 +230,39 @@ class DhikrNotificationScheduler {
     try {
       final now = DateTime.now();
       final daysUntilFriday = (DateTime.friday - now.weekday) % 7;
-      final nextFriday =
-          now.add(Duration(days: daysUntilFriday == 0 ? 7 : daysUntilFriday));
+      // The next 4 Fridays (today included), so the reminders keep coming
+      // even if the app is not opened for a few weeks. Past times are skipped.
+      for (int k = 0; k < 4; k++) {
+        final d = DateTime(now.year, now.month, now.day)
+            .add(Duration(days: daysUntilFriday + 7 * k));
 
-      // Reminder to read Surah Al-Kahf
-      final kahfReminderTime = DateTime(
-        nextFriday.year,
-        nextFriday.month,
-        nextFriday.day,
-        9, // 9 AM
-        0,
-      );
+        // Surah Al-Kahf: tapping opens the Mushaf at Al-Kahf.
+        await _notificationService.scheduleDhikrReminder(
+          id: NotificationService.dhikrReminderBaseId + 80 + k,
+          title: '🕌 ${tr('سورة الكهف')}',
+          dhikrText: tr(
+              'يوم الجمعة المبارك: تذكر قراءة سورة الكهف والإكثار من الصلاة على النبي ﷺ'),
+          scheduledTime: DateTime(d.year, d.month, d.day, 9, 0),
+          isRepeating: false,
+          payload: NotificationPayload.mushaf(18),
+        );
 
-      await _notificationService.scheduleDhikrReminder(
-        id: NotificationService.dhikrReminderBaseId + 60,
-        dhikrText:
-            'يوم الجمعة المبارك: تذكر قراءة سورة الكهف والإكثار من الصلاة على النبي ﷺ',
-        scheduledTime: kahfReminderTime,
-        isRepeating: false,
-      );
-
-      // Reminder for Jummah prayer
-      final jummahReminderTime = DateTime(
-        nextFriday.year,
-        nextFriday.month,
-        nextFriday.day,
-        11, // 11 AM
-        30,
-      );
-
-      await _notificationService.scheduleDhikrReminder(
-        id: NotificationService.dhikrReminderBaseId + 61,
-        dhikrText: 'تذكير: صلاة الجمعة قريباً. استعد للذهاب إلى المسجد',
-        scheduledTime: jummahReminderTime,
-        isRepeating: false,
-      );
-
-      print('تم جدولة تذكيرات يوم الجمعة');
+        // Jumu'ah prayer: tapping opens prayer times.
+        await _notificationService.scheduleDhikrReminder(
+          id: NotificationService.dhikrReminderBaseId + 90 + k,
+          dhikrText: tr('تذكير: صلاة الجمعة قريباً. استعد للذهاب إلى المسجد'),
+          scheduledTime: DateTime(d.year, d.month, d.day, 11, 30),
+          isRepeating: false,
+          payload: NotificationPayload.prayer,
+        );
+      }
+      // Old single-Friday ids from earlier versions.
+      await _notificationService
+          .cancelNotification(NotificationService.dhikrReminderBaseId + 60);
+      await _notificationService
+          .cancelNotification(NotificationService.dhikrReminderBaseId + 61);
     } catch (e) {
-      print('خطأ في جدولة تذكيرات الجمعة: $e');
+      debugPrint('Jumuah reminders: $e');
     }
   }
 
@@ -282,16 +280,29 @@ class DhikrNotificationScheduler {
 
       await _notificationService.scheduleDhikrReminder(
         id: NotificationService.dhikrReminderBaseId + 70,
-        dhikrText: 'تذكير: صيام يوم الاثنين سنة مستحبة. هل تريد أن تصوم اليوم؟',
+        dhikrText: tr('تذكير: صيام يوم الاثنين سنة مستحبة. هل تريد أن تصوم اليوم؟'),
         scheduledTime:
             DateTime(nextMonday.year, nextMonday.month, nextMonday.day, 5, 0),
         isRepeating: false,
+        payload: NotificationPayload.hijri,
       );
 
       print('تم جدولة تذكيرات المناسبات الإسلامية');
     } catch (e) {
       print('خطأ في جدولة المناسبات الإسلامية: $e');
     }
+  }
+
+  /// Where tapping a reminder with [text] should take the user.
+  static String payloadFor(String text, [DateTime? at]) {
+    if (text.contains('آية الكرسي')) return NotificationPayload.mushaf(2, 255);
+    if (text.contains('الفاتحة')) return NotificationPayload.mushaf(1);
+    if (text.contains('القرآن')) return NotificationPayload.mushafLastRead;
+    if (text.contains('أذكار الصباح والمساء')) {
+      final h = (at ?? DateTime.now()).hour;
+      return h < 12 ? NotificationPayload.azkarMorning : NotificationPayload.azkarEvening;
+    }
+    return NotificationPayload.sebha;
   }
 
   /// Get random dhikr from the collection
@@ -358,7 +369,7 @@ class DhikrNotificationScheduler {
       id: 999,
       title: 'ذكر الله',
       body: dhikrText,
-      payload: 'dhikr_reminder',
+      payload: payloadFor(dhikrText),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 
 import 'dart:async';
 
@@ -55,7 +56,7 @@ class _QiblaCompassState extends State<QiblaCompass> {
         builder: (context, AsyncSnapshot<LocationStatus> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: AppLoader(),
             );
           }
           if (snapshot.data!.enabled == true) {
@@ -106,7 +107,7 @@ class QiblahCompassWidget extends StatelessWidget {
       builder: (_, AsyncSnapshot<QiblahDirection> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
         {
-          return const Center(child: CircularProgressIndicator(),);
+          return const Center(child: AppLoader(),);
         }
 
         final qiblahDirection = snapshot.data!;

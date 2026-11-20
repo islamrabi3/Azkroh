@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/widgets/app_loader.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 // ignore_for_file: implementation_imports
 import 'package:azkroh_app/features/presentation/screens/professional_splash_screen.dart';
@@ -7,8 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:azkroh_app/features/core/services/quran_audio_service.dart';
 import 'package:qcf_quran_plus/qcf_quran_plus.dart' as qcf;
 import 'package:qcf_quran_plus/src/widgets/quran_page/quran_repository.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 /// Mushaf reader: the 604 pages of the Madinah Mushaf (Hafs) rendered with the
 /// King Fahd Complex QCF fonts, so every line, word and symbol matches the
@@ -108,6 +110,17 @@ class _MushafScreenState extends State<MushafScreen> {
   bool _dark = false;
   bool _tajweed = false;
   bool _showChrome = true;
+
+  // First-run guide (showcaseview).
+  static const _guideScope = 'mushaf_guide';
+  static const _prefGuideSeen = 'mushaf_guide_seen_v1';
+  final _gPage = GlobalKey();
+  final _gIndex = GlobalKey();
+  final _gBookmark = GlobalKey();
+  final _gTheme = GlobalKey();
+  final _gMenu = GlobalKey();
+  final _gPill = GlobalKey();
+  late final ShowcaseView _guide;
   int? _bookmarkPage;
 
   int? _selSurah;
@@ -127,6 +140,38 @@ class _MushafScreenState extends State<MushafScreen> {
   @override
   void initState() {
     super.initState();
+    _guide = ShowcaseView.register(
+      scope: _guideScope,
+      skipIfTargetNotPresent: true,
+      blurValue: 1,
+      onFinish: _guideDone,
+      onDismiss: (_) => _guideDone(),
+      globalTooltipActionConfig: TooltipActionConfig(
+        alignment: MainAxisAlignment.spaceBetween,
+        position: TooltipActionPosition.inside,
+        gapBetweenContentAndAction: 14,
+      ),
+      globalTooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.skip,
+          name: tr('تخطي'),
+          textStyle: const TextStyle(
+              fontFamily: 'AppSans', color: Color(0xFF8A8A80), fontSize: 14),
+          backgroundColor: Colors.transparent,
+        ),
+        TooltipActionButton(
+          type: TooltipDefaultActionType.next,
+          name: tr('التالي'),
+          textStyle: const TextStyle(
+              fontFamily: 'AppSans',
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 14),
+          backgroundColor: const Color(0xFF0F5C4A),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        ),
+      ],
+    );
     _page = widget.initialPage.clamp(1, 604);
     _controller = PageController(initialPage: _page - 1);
     if (widget.markOnly) {
@@ -170,6 +215,67 @@ class _MushafScreenState extends State<MushafScreen> {
     }
     qcf.QcfFontLoader.preloadPages(_page, radius: 3);
     _saveLastRead(_page);
+    if (!(prefs.getBool(_prefGuideSeen) ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) =>
+          Future.delayed(const Duration(milliseconds: 700), _startGuide));
+    }
+  }
+
+  /// Walks the user through the Mushaf controls.
+  void _startGuide() {
+    if (!mounted) return;
+    setState(() {
+      _showChrome = true;
+      _selSurah = null;
+      _selVerse = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _guide.startShowCase(
+          [_gPage, _gIndex, _gBookmark, _gTheme, _gMenu, _gPill]);
+    });
+  }
+
+  Future<void> _guideDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefGuideSeen, true);
+  }
+
+  Widget _guideStep(GlobalKey key, String title, String desc, Widget child,
+      {ShapeBorder shape = const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(14))),
+      EdgeInsets padding = const EdgeInsets.all(4)}) {
+    final p = _palette;
+    return Showcase(
+      key: key,
+      scope: _guideScope,
+      title: title,
+      description: desc,
+      targetShapeBorder: shape,
+      targetBorderRadius: shape is CircleBorder
+          ? null
+          : const BorderRadius.all(Radius.circular(14)),
+      targetPadding: padding,
+      tooltipBackgroundColor: p.pill,
+      textColor: p.text,
+      tooltipBorderRadius: BorderRadius.circular(18),
+      tooltipPadding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      titleTextDirection: AppLocale.direction,
+      descriptionTextDirection: AppLocale.direction,
+      titleAlignment: AlignmentDirectional.centerStart,
+      descriptionAlignment: AlignmentDirectional.centerStart,
+      titleTextAlign: TextAlign.start,
+      descriptionTextAlign: TextAlign.start,
+      titleTextStyle: TextStyle(
+          fontFamily: 'AppSans',
+          color: p.accent,
+          fontWeight: FontWeight.w700,
+          fontSize: 16),
+      descTextStyle: TextStyle(
+          fontFamily: 'AppSans', color: p.text, fontSize: 14, height: 1.6),
+      overlayOpacity: 0.65,
+      child: child,
+    );
   }
 
   void _onAudio() {
@@ -185,14 +291,14 @@ class _MushafScreenState extends State<MushafScreen> {
       final page = qcf.getPageNumber(st!.surah, st.ayah!);
       if (page != _page && _controller.hasClients) {
         _controller.animateToPage(page - 1,
-            duration: Duration(milliseconds: 400),
-            curve: Curves.easeInOut);
+            duration: Duration(milliseconds: 400), curve: Curves.easeInOut);
       }
     }
   }
 
   @override
   void dispose() {
+    _guide.unregister();
     _audio.state.removeListener(_onAudio);
     _audio.stop();
     _controller.dispose();
@@ -387,7 +493,10 @@ class _MushafScreenState extends State<MushafScreen> {
       await _audio.playFrom(surah, verse);
     } catch (e) {
       if (mounted) {
-        _toast(e.toString().replaceFirst('Exception: ', '').contains(tr('غير متوفرة'))
+        _toast(e
+                .toString()
+                .replaceFirst('Exception: ', '')
+                .contains(tr('غير متوفرة'))
             ? e.toString().replaceFirst('Exception: ', '')
             : tr('تعذر تشغيل التلاوة، تأكد من الاتصال بالإنترنت'));
       }
@@ -437,14 +546,17 @@ class _MushafScreenState extends State<MushafScreen> {
               SizedBox(height: 4),
               Text(tr('تُحفظ التلاوة على جهازك بعد أول استماع وتعمل بدون إنترنت'),
                   style: TextStyle(
-                      fontFamily: 'AppSans', color: _palette.muted, fontSize: 12.5)),
+                      fontFamily: 'AppSans',
+                      color: _palette.muted,
+                      fontSize: 12.5)),
               SizedBox(height: 10),
               ...QuranAudioService.reciters.map((r) {
                 final sel = r.id == current.id;
                 return Padding(
                   padding: EdgeInsets.only(bottom: 8),
                   child: Material(
-                    color: sel ? _palette.accent.withOpacity(0.12) : _palette.pill,
+                    color:
+                        sel ? _palette.accent.withOpacity(0.12) : _palette.pill,
                     borderRadius: BorderRadius.circular(16),
                     child: ListTile(
                       shape: RoundedRectangleBorder(
@@ -452,7 +564,8 @@ class _MushafScreenState extends State<MushafScreen> {
                       onTap: () => Navigator.pop(ctx, r),
                       leading: CircleAvatar(
                         backgroundColor: _palette.accent.withOpacity(0.15),
-                        child: Icon(Icons.mic_none_rounded, color: _palette.accent),
+                        child: Icon(Icons.mic_none_rounded,
+                            color: _palette.accent),
                       ),
                       title: Text(tr(r.name),
                           style: TextStyle(
@@ -463,7 +576,8 @@ class _MushafScreenState extends State<MushafScreen> {
                           style: TextStyle(
                               fontFamily: 'AppSans', color: _palette.muted)),
                       trailing: sel
-                          ? Icon(Icons.check_circle_rounded, color: _palette.accent)
+                          ? Icon(Icons.check_circle_rounded,
+                              color: _palette.accent)
                           : null,
                     ),
                   ),
@@ -489,7 +603,8 @@ class _MushafScreenState extends State<MushafScreen> {
       return;
     }
     if (await _audio.isSurahDownloaded(r, surah)) {
-      _toast('${tr('سورة')} ${surahName(surah)} ${tr('محفوظة على جهازك بالفعل')}');
+      _toast(
+          '${tr('سورة')} ${surahName(surah)} ${tr('محفوظة على جهازك بالفعل')}');
       return;
     }
     final progress = ValueNotifier<double>(0);
@@ -509,16 +624,20 @@ class _MushafScreenState extends State<MushafScreen> {
               width: 22,
               height: 22,
               child: CircularProgressIndicator(
-                  value: v == 0 ? null : v, strokeWidth: 2.5, color: Colors.white),
+                  value: v == 0 ? null : v,
+                  strokeWidth: 2.5,
+                  color: Colors.white),
             ),
           ],
         ),
       ),
     ));
     try {
-      await _audio.downloadSurah(r, surah, onProgress: (v) => progress.value = v);
+      await _audio.downloadSurah(r, surah,
+          onProgress: (v) => progress.value = v);
       bar.close();
-      _toast('${tr('تم حفظ سورة')} ${surahName(surah)} ${tr('للاستماع بدون إنترنت')}');
+      _toast(
+          '${tr('تم حفظ سورة')} ${surahName(surah)} ${tr('للاستماع بدون إنترنت')}');
     } catch (_) {
       bar.close();
       _toast(tr('تعذر التحميل، تأكد من الاتصال بالإنترنت'));
@@ -589,79 +708,109 @@ class _MushafScreenState extends State<MushafScreen> {
                     _iconBtn(Icons.arrow_back_ios_new_rounded, tr('رجوع'),
                         () => Navigator.maybePop(context)),
                     Expanded(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: _openIndex,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('${tr('سورة')} ${_surahLabel(_page)}',
-                                    style: TextStyle(
-                                        fontFamily: 'AppSans',
-                                        color: p.text,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16)),
-                                Icon(Icons.expand_more_rounded,
-                                    color: p.muted, size: 20),
-                              ],
-                            ),
-                            Text(
-                                '${tr('الجزء')} ${ar(_juz(_page))} • ${tr('صفحة')} ${ar(_page)}',
-                                style: TextStyle(
-                                    fontFamily: 'AppSans',
-                                    color: p.muted,
-                                    fontSize: 11.5)),
-                          ],
+                      child: _guideStep(
+                        _gIndex,
+                        tr('فهرس المصحف'),
+                        tr('اضغط على اسم السورة لفتح الفهرس: تنقّل بين السور والأجزاء والصفحات، أو ابحث عن سورة.'),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: _openIndex,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('${tr('سورة')} ${_surahLabel(_page)}',
+                                      style: TextStyle(
+                                          fontFamily: 'AppSans',
+                                          color: p.text,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 16)),
+                                  Icon(Icons.expand_more_rounded,
+                                      color: p.muted, size: 20),
+                                ],
+                              ),
+                              Text(
+                                  '${tr('الجزء')} ${ar(_juz(_page))} • ${tr('صفحة')} ${ar(_page)}',
+                                  style: TextStyle(
+                                      fontFamily: 'AppSans',
+                                      color: p.muted,
+                                      fontSize: 11.5)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    _iconBtn(
-                        bookmarked
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
-                        tr('العلامة'),
-                        _toggleBookmark,
-                        color: bookmarked ? p.accent : null),
-                    _iconBtn(
-                        _dark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                        _dark ? tr('الوضع النهاري') : tr('الوضع الليلي'),
-                        _toggleDark),
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert_rounded, color: p.text),
-                      color: p.pill,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      onSelected: (v) {
-                        if (v == 'tajweed') _toggleTajweed();
-                        if (v == 'index') _openIndex();
-                        if (v == 'reciter') _pickReciter();
-                        if (v == 'listen') {
-                          _playFrom(_firstSurah(_page), _firstVerse(_page));
-                        }
-                        if (v == 'tafsir') {
-                          showTafsirSheet(context,
-                              surah: _firstSurah(_page),
-                              verse: _firstVerse(_page),
-                              dark: _dark);
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        _menuItem('index', Icons.list_alt_rounded,
-                            tr('فهرس السور والأجزاء')),
-                        _menuItem('listen', Icons.play_circle_outline_rounded,
-                            tr('استماع من أول الصفحة')),
-                        _menuItem('reciter', Icons.record_voice_over_outlined,
-                            tr('اختيار القارئ')),
-                        _menuItem('tajweed', Icons.palette_outlined,
-                            _tajweed ? tr('إخفاء ألوان التجويد') : tr('مصحف التجويد')),
-                        _menuItem('tafsir', Icons.menu_book_rounded,
-                            tr('تفسير أول الصفحة')),
-                      ],
+                    _guideStep(
+                      _gBookmark,
+                      tr('العلامة'),
+                      tr('احفظ موضع قراءتك. لتحديد آية بعينها اضغط عليها ثم اختر «علامة»، وستفتح لك مظللة في المرة القادمة.'),
+                      _iconBtn(
+                          bookmarked
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          tr('العلامة'),
+                          _toggleBookmark,
+                          color: bookmarked ? p.accent : null),
+                      shape: const CircleBorder(),
+                    ),
+                    _guideStep(
+                      _gTheme,
+                      tr('الوضع الليلي'),
+                      tr('بدّل بين الوضع النهاري والليلي لراحة عينيك أثناء القراءة.'),
+                      _iconBtn(
+                          _dark
+                              ? Icons.light_mode_outlined
+                              : Icons.dark_mode_outlined,
+                          _dark ? tr('الوضع النهاري') : tr('الوضع الليلي'),
+                          _toggleDark),
+                      shape: const CircleBorder(),
+                    ),
+                    _guideStep(
+                      _gMenu,
+                      tr('المزيد'),
+                      tr('من هنا: الاستماع من أول الصفحة، اختيار القارئ، مصحف التجويد الملوّن، والتفسير، ودليل الاستخدام.'),
+                      shape: const CircleBorder(),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert_rounded, color: p.text),
+                        color: p.pill,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        onSelected: (v) {
+                          if (v == 'tajweed') _toggleTajweed();
+                          if (v == 'guide') _startGuide();
+                          if (v == 'index') _openIndex();
+                          if (v == 'reciter') _pickReciter();
+                          if (v == 'listen') {
+                            _playFrom(_firstSurah(_page), _firstVerse(_page));
+                          }
+                          if (v == 'tafsir') {
+                            showTafsirSheet(context,
+                                surah: _firstSurah(_page),
+                                verse: _firstVerse(_page),
+                                dark: _dark);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          _menuItem('index', Icons.list_alt_rounded,
+                              tr('فهرس السور والأجزاء')),
+                          _menuItem('listen', Icons.play_circle_outline_rounded,
+                              tr('استماع من أول الصفحة')),
+                          _menuItem('reciter', Icons.record_voice_over_outlined,
+                              tr('اختيار القارئ')),
+                          _menuItem(
+                              'tajweed',
+                              Icons.palette_outlined,
+                              _tajweed
+                                  ? tr('إخفاء ألوان التجويد')
+                                  : tr('مصحف التجويد')),
+                          _menuItem('tafsir', Icons.menu_book_rounded,
+                              tr('تفسير أول الصفحة')),
+                          _menuItem('guide', Icons.help_outline_rounded,
+                              tr('دليل استخدام المصحف')),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -714,8 +863,7 @@ class _MushafScreenState extends State<MushafScreen> {
         transitionBuilder: (c, a) => FadeTransition(
           opacity: a,
           child: SlideTransition(
-            position: Tween(begin: Offset(0, 0.2), end: Offset.zero)
-                .animate(a),
+            position: Tween(begin: Offset(0, 0.2), end: Offset.zero).animate(a),
             child: c,
           ),
         ),
@@ -732,7 +880,8 @@ class _MushafScreenState extends State<MushafScreen> {
   }
 
   Widget _pagePill() {
-    final hizb = qcf.getCurrentHizbTextForPage(_page, isArabic: AppLocale.isRtl);
+    final hizb =
+        qcf.getCurrentHizbTextForPage(_page, isArabic: AppLocale.isRtl);
     final p = _palette;
     return Padding(
       padding: EdgeInsets.only(bottom: 6, top: 4),
@@ -852,7 +1001,7 @@ class _MushafScreenState extends State<MushafScreen> {
                 _toast(tr('تم نسخ الآية'));
               }),
               action(Icons.ios_share_rounded, tr('مشاركة'),
-                  () => Share.share(_verseRef(surah, verse))),
+                  () => shareText(context, _verseRef(surah, verse))),
               action(Icons.bookmark_add_outlined, tr('علامة'),
                   () => _bookmarkVerse(surah, verse)),
             ],
@@ -899,8 +1048,7 @@ class _MushafScreenState extends State<MushafScreen> {
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: p.accent))
+                        child: AppLoader(size: 22, color: p.accent))
                     : Icon(Icons.graphic_eq_rounded, color: p.accent, size: 20),
               ),
             ),
@@ -916,7 +1064,8 @@ class _MushafScreenState extends State<MushafScreen> {
                   Row(
                     children: [
                       Flexible(
-                        child: Text('${tr(st.reciter.name)} • ${tr(st.reciter.style)}',
+                        child: Text(
+                            '${tr(st.reciter.name)} • ${tr(st.reciter.style)}',
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontFamily: 'AppSans',
@@ -953,7 +1102,9 @@ class _MushafScreenState extends State<MushafScreen> {
               onPressed: () {
                 HapticFeedback.selectionClick();
                 _audio.repeatAyah.value = !rep;
-                _toast(rep ? tr('تم إيقاف التكرار') : tr('سيتم تكرار الآية الحالية'));
+                _toast(rep
+                    ? tr('تم إيقاف التكرار')
+                    : tr('سيتم تكرار الآية الحالية'));
               },
             ),
           ),
@@ -1005,8 +1156,8 @@ class _MushafScreenState extends State<MushafScreen> {
                   fontWeight: FontWeight.w700)),
           SizedBox(height: 6),
           Text(tr('رواية حفص عن عاصم • مصحف المدينة'),
-              style:
-                  TextStyle(fontFamily: 'AppSans', color: p.muted, fontSize: 13)),
+              style: TextStyle(
+                  fontFamily: 'AppSans', color: p.muted, fontSize: 13)),
           SizedBox(height: 22),
           SizedBox(
             width: 90,
@@ -1042,27 +1193,48 @@ class _MushafScreenState extends State<MushafScreen> {
                     children: [
                       _topBar(),
                       Expanded(
-                        child: GestureDetector(
-                          // Single tap only (no double-tap) so verse taps
-                          // inside the page react instantly.
-                          behavior: HitTestBehavior.translucent,
-                          onTap: _onBackgroundTap,
-                          child: qcf.QuranPageView(
-                            pageController: _controller,
-                            highlights: _highlights,
-                            isDarkMode: _dark,
-                            isTajweed: _tajweed,
-                            pageBackgroundColor: p.background,
-                            enableTwoPageLayout: true,
-                            deferNewPages: false,
-                            onPageChanged: _onPageChanged,
-                            pageHeaderBuilder: _pageHeader,
-                            onVerseTap: _select,
-                            onLongPress: (s, v, _) => _select(s, v),
-                          ),
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                                child: GestureDetector(
+                              // Single tap only (no double-tap) so verse taps
+                              // inside the page react instantly.
+                              behavior: HitTestBehavior.translucent,
+                              onTap: _onBackgroundTap,
+                              child: qcf.QuranPageView(
+                                pageController: _controller,
+                                highlights: _highlights,
+                                isDarkMode: _dark,
+                                isTajweed: _tajweed,
+                                pageBackgroundColor: p.background,
+                                enableTwoPageLayout: true,
+                                deferNewPages: false,
+                                onPageChanged: _onPageChanged,
+                                pageHeaderBuilder: _pageHeader,
+                                onVerseTap: _select,
+                                onLongPress: (s, v, _) => _select(s, v),
+                              ),
+                            )),
+                            // Invisible target for the "tap a verse" step.
+                            Center(
+                              child: IgnorePointer(
+                                child: _guideStep(
+                                  _gPage,
+                                  tr('اضغط على أي آية'),
+                                  tr('اضغط على الآية لتظليلها وحفظ موضع وقوفك، ويظهر لك شريط: التفسير، الاستماع بصوت القارئ، النسخ، المشاركة، والعلامة.'),
+                                  const SizedBox(width: 260, height: 110),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      _bottomArea(),
+                      _guideStep(
+                        _gPill,
+                        tr('التنقل بين الصفحات'),
+                        tr('اسحب الصفحة يميناً أو يساراً للتنقل، واضغط على أي مكان فارغ لإخفاء الأشرطة أو إظهارها. هنا رقم الصفحة والحزب.'),
+                        _bottomArea(),
+                      ),
                     ],
                   ),
           ),
@@ -1141,8 +1313,7 @@ class _MushafIndexSheetState extends State<_MushafIndexSheet> {
                   style: TextStyle(fontFamily: 'AppSans', color: p.text),
                   decoration: InputDecoration(
                     hintText: tr('ابحث عن سورة أو اكتب رقم الصفحة'),
-                    hintStyle:
-                        TextStyle(fontFamily: 'AppSans', color: p.muted),
+                    hintStyle: TextStyle(fontFamily: 'AppSans', color: p.muted),
                     prefixIcon: Icon(Icons.search_rounded, color: p.muted),
                     filled: true,
                     fillColor: p.pill,
@@ -1238,8 +1409,7 @@ class _MushafIndexSheetState extends State<_MushafIndexSheet> {
                     ),
                     GridView.builder(
                       padding: EdgeInsets.all(16),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
@@ -1267,9 +1437,8 @@ class _MushafIndexSheetState extends State<_MushafIndexSheet> {
                                     style: TextStyle(
                                         fontFamily: 'AppSans',
                                         fontWeight: FontWeight.w700,
-                                        color: current
-                                            ? Colors.white
-                                            : p.text)),
+                                        color:
+                                            current ? Colors.white : p.text)),
                                 Text('${tr('صفحة')} ${ar(page)}',
                                     style: TextStyle(
                                         fontFamily: 'AppSans',
