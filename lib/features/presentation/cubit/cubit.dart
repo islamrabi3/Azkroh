@@ -4,17 +4,17 @@ import 'package:azkroh_app/features/core/notification_service.dart';
 import 'package:azkroh_app/features/core/prayer_notification_scheduler.dart';
 import 'package:azkroh_app/features/core/dhikr_notification_scheduler.dart';
 import 'package:azkroh_app/features/core/services/global_location_service.dart';
-import 'package:azkroh_app/features/data/datasource/remota_data_source/azan_remote_data.dart';
+import 'package:azkroh_app/features/core/services/prayer_times_service.dart';
+import 'package:azkroh_app/features/data/models/azan_data_model.dart';
 import 'package:azkroh_app/features/data/datasource/remota_data_source/quran_remote_data.dart';
-import 'package:azkroh_app/features/data/repo/AzanRepoImp.dart';
 import 'package:azkroh_app/features/data/repo/quran_repo_impl.dart';
 import 'package:azkroh_app/features/domain/entity/azan_entity.dart';
 import 'package:azkroh_app/features/domain/entity/quran_entity.dart';
 import 'package:azkroh_app/features/domain/repo/quran_base_repo.dart';
-import 'package:azkroh_app/features/domain/usecase/get_azan_details.dart';
 import 'package:azkroh_app/features/domain/usecase/get_quran_data_use_case.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/enhanced_hijri_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/hadith/hadith_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/paryer_time_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/qibla_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/radio_screen.dart';
@@ -82,6 +82,7 @@ class AppCubit extends Cubit<Appstates> {
     const RadioScreen(),
     const QibalScreen(),
     const EnhancedHijriScreen(),
+    const HadithScreen(),
   ];
 
   void sebhaIncrement() async {
@@ -189,60 +190,75 @@ class AppCubit extends Cubit<Appstates> {
       DhikrNotificationScheduler();
   final GlobalLocationService _locationService = GlobalLocationService();
 
+  /// Loads today's prayer times. Times are calculated on the device for the
+  /// current date (works offline and follows DST changes), then every
+  /// upcoming Adhan notification is rescheduled.
   getPrayerTimeFromApi() async {
     try {
       emit(GetPrayerTimeLoadingState());
 
-      // Initialize global location service
       await _locationService.initialize();
 
-      final position = _locationService.currentPosition ??
-          await LocationHelper.getLocationMethod();
-
-      if (position == null) {
-        debugPrint('Unable to get location');
+      double? lat = _locationService.currentPosition?.latitude;
+      double? lon = _locationService.currentPosition?.longitude;
+      if (lat == null || lon == null) {
+        final position = await LocationHelper.getLocationMethod();
+        lat = position?.latitude;
+        lon = position?.longitude;
+      }
+      if (lat == null || lon == null) {
         emit(GetPrayerTimeErrorState());
         return;
       }
 
-      AzanRemoteDataImp azanRemoteDataImp = AzanRemoteDataImp();
-      AzanRepoImp azanRepoImp = AzanRepoImp(azanRemoteDataImp);
-      GetAzanDetailsUseCase getAzanDetailsUseCase =
-          GetAzanDetailsUseCase(azanBaseRepo: azanRepoImp);
-      getAzanDetailsUseCase
-          .call(position.latitude, position.longitude)
-          .then((value) async {
-        azanEntityData = value;
+      final service = PrayerTimesService();
+      final now = DateTime.now();
+      final t = await service.timesFor(lat, lon, now);
+      final tomorrow = await service.timesFor(
+          lat, lon, DateTime(now.year, now.month, now.day + 1));
 
-        debugPrint(azanEntityData!.data.timings.fajr);
+      String f(DateTime d) => PrayerTimesService.hhmm(d.toLocal());
+      final maghrib = t.maghrib.toLocal();
+      final nextFajr = tomorrow.fajr.toLocal();
+      final night = nextFajr.difference(maghrib);
 
-        // Schedule prayer notifications
-        try {
-          await _prayerScheduler
-              .scheduleAllPrayerNotifications(azanEntityData!);
-          await _prayerScheduler.schedulePrayerReminders(azanEntityData!);
-          debugPrint('✅ تم جدولة إشعارات الصلاة بنجاح');
+      azanEntityData = AzanModel(
+        code: 200,
+        status: 'OK',
+        data: DataModel(
+          timings: TimingModel(
+            fajr: f(t.fajr),
+            sunrise: f(t.sunrise),
+            dhuhr: f(t.dhuhr),
+            asr: f(t.asr),
+            sunset: f(t.maghrib),
+            maghrib: f(t.maghrib),
+            isha: f(t.isha),
+            imsak: f(t.fajr.subtract(const Duration(minutes: 10))),
+            midnight: f(maghrib.add(night ~/ 2)),
+            firstthird: f(maghrib.add(night ~/ 3)),
+            lastthird: f(maghrib.add(night * 2 ~/ 3)),
+          ),
+        ),
+      );
 
-          // Initialize dhikr reminders (including morning/evening azkar)
-          await _dhikrScheduler.initializeAllDhikrReminders();
-          debugPrint('✅ تم تهيئة تذكيرات الذكر بنجاح');
+      emit(GetPrayersTimeState());
 
-          // Log pending notifications for debugging
-          final notificationService = NotificationService();
-          await notificationService.logPendingNotifications();
-        } catch (e) {
-          debugPrint('❌ خطأ في جدولة الإشعارات: $e');
-          debugPrint('   Stack trace: ${StackTrace.current}');
-        }
-
-        emit(GetPrayersTimeState());
-      }).catchError((error) {
-        debugPrint(error.toString());
-        emit(GetPrayerTimeErrorState());
-      });
+      // Reschedule notifications in the background.
+      _rescheduleNotifications();
     } catch (e) {
       debugPrint(e.toString());
       emit(GetPrayerTimeErrorState());
+    }
+  }
+
+  Future<void> _rescheduleNotifications() async {
+    try {
+      await _prayerScheduler.scheduleUpcoming();
+      await _dhikrScheduler.initializeAllDhikrReminders();
+      await NotificationService().logPendingNotifications();
+    } catch (e) {
+      debugPrint('❌ خطأ في جدولة الإشعارات: $e');
     }
   }
 

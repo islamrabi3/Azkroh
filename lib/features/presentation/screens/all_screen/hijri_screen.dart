@@ -53,7 +53,7 @@ class HijriCalender extends StatelessWidget {
                             hijri.fullDate(),
                             style: TextStyle(
                               fontSize: 30.sp,
-                              fontFamily: 'Amiri',
+                              fontFamily: 'AppSans',
                               color: AppStyle.textDark,
                             ),
                           ),

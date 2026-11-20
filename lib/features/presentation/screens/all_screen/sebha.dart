@@ -73,9 +73,9 @@ class _SebhaState extends State<Sebha> with TickerProviderStateMixin {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF1B5E20),
-                    Color(0xFF2E7D32),
-                    Color(0xFF388E3C),
+                    Color(0xFF0B3D33),
+                    Color(0xFF0F5C4A),
+                    Color(0xFF1B7A63),
                   ],
                 ),
               ),
@@ -298,13 +298,13 @@ class _SebhaState extends State<Sebha> with TickerProviderStateMixin {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFFFD700),
-                    Color(0xFFB8860B),
+                    Color(0xFFD4AF37),
+                    Color(0xFFA8842C),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.4),
+                    color: const Color(0xFFD4AF37).withOpacity(0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -315,14 +315,14 @@ class _SebhaState extends State<Sebha> with TickerProviderStateMixin {
                 children: [
                   const Icon(
                     Icons.touch_app_rounded,
-                    color: Color(0xFF1B5E20),
+                    color: Color(0xFF0B3D33),
                     size: 40,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     cubit.sebhaInitValue,
                     style: const TextStyle(
-                      color: Color(0xFF1B5E20),
+                      color: Color(0xFF0B3D33),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -377,7 +377,7 @@ class _SebhaState extends State<Sebha> with TickerProviderStateMixin {
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
+                  colors: [Color(0xFFD4AF37), Color(0xFFA8842C)],
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -510,7 +510,7 @@ class _BeadsPainter extends CustomPainter {
       final isActive = i < (progress * beadCount);
       final paint = Paint()
         ..color = isActive
-            ? const Color(0xFFFFD700)
+            ? const Color(0xFFD4AF37)
             : Colors.white.withOpacity(0.3)
         ..style = PaintingStyle.fill;
 

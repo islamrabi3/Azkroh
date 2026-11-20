@@ -1,15 +1,33 @@
+import 'package:azkroh_app/features/core/notification_service.dart';
+import 'package:azkroh_app/l10n/app_locale.dart';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/methods/methods.dart';
+import 'package:azkroh_app/features/core/services/app_store_service.dart';
 import 'package:azkroh_app/features/core/services/azkar_state_service.dart';
+import 'package:upgrader/upgrader.dart';
+import 'package:azkroh_app/features/core/services/hadith_service.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/enhanced_hijri_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/paryer_time_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/qibla_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/radio_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/all_screen/sebha.dart';
 import 'package:azkroh_app/features/presentation/screens/enhanced_azkar_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/hadith/hadith_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/notification_settings_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/professional_splash_screen.dart';
+import 'package:azkroh_app/features/presentation/screens/quran_screen_locally/mushaf_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hijri/hijri_calendar.dart';
+import 'package:intl/intl.dart' show DateFormat;
+import 'package:qcf_quran_plus/qcf_quran_plus.dart' as qcf;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -18,328 +36,493 @@ class HomePageScreen extends StatefulWidget {
   State<HomePageScreen> createState() => _HomePageScreenState();
 }
 
-class _HomePageScreenState extends State<HomePageScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+/// Arabic-Indic digits.
+String arNum(Object n) {
+  const d = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return AppLocale.digits(n);
+  // ignore: dead_code
+  return n
+      .toString()
+      .split('')
+      .map((c) => (c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57)
+          ? d[c.codeUnitAt(0) - 48]
+          : c)
+      .join();
+}
+
+class _HomePageScreenState extends State<HomePageScreen> {
   final AzkarStateService _azkarService = AzkarStateService();
-  late HijriCalendar _hijri;
+  final Future<Hadith> _dailyHadith = HadithService().dailyHadith();
+  Timer? _ticker;
+  DateTime _now = DateTime.now();
+  int _hijriAdjust = 0;
+  int? _lastPage;
+  int? _bmSurah;
+  int? _bmVerse;
 
   @override
   void initState() {
     super.initState();
-    _hijri = HijriCalendar.now();
-    HijriCalendar.setLocal('ar');
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    _ticker = Timer.periodic(Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+    _loadPrefs();
+    AppStoreService().registerLaunchAndMaybeAskReview();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final granted = await NotificationService().requestPermissions();
+      if (granted && mounted) {
+        // Schedule now that we're allowed to.
+        context.read<AppCubit>().getPrayerTimeFromApi();
+      }
+      if (mounted) AppStoreService().checkAndroidUpdate(context);
+    });
+  }
 
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-
-    _animationController.forward();
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _hijriAdjust = prefs.getInt('hijri_adjust') ?? 0;
+      _lastPage = prefs.getInt('mushaf_last_page');
+      _bmSurah = prefs.getInt('mushaf_bookmark_page') == null
+          ? null
+          : prefs.getInt('bookmarkedSurah');
+      _bmVerse = prefs.getInt('bookmarkedVerse');
+    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _ticker?.cancel();
     super.dispose();
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'صباح الخير';
-    } else if (hour < 17) {
-      return 'مساء الخير';
-    } else {
-      return 'مساء النور';
-    }
+  // ---------------------------------------------------------------------------
+  // Data helpers
+  // ---------------------------------------------------------------------------
+  String _greeting() {
+    final h = _now.hour;
+    if (h < 4) return tr('طابت ليلتك');
+    if (h < 12) return tr('صباح الخير');
+    if (h < 18) return tr('مساء الخير');
+    return tr('مساء النور');
   }
 
-  String _getAzkarStatus() {
-    final period = _azkarService.getCurrentPeriod();
-    if (period == AzkarPeriod.morning) {
-      return 'وقت أذكار الصباح';
-    } else if (period == AzkarPeriod.evening) {
-      return 'وقت أذكار المساء';
-    }
-    return 'اذكر الله';
-  }
-
-  String _formatTime12Hour(String time24) {
+  DateTime? _parse(String? hhmm, DateTime day) {
+    if (hhmm == null) return null;
     try {
-      final timeStr = time24.split(' ')[0];
-      final parts = timeStr.split(':');
-      int hour = int.parse(parts[0]);
-      final minute = parts[1];
-
-      String period = hour < 12 ? 'ص' : 'م';
-      if (hour == 0) {
-        hour = 12;
-      } else if (hour > 12) {
-        hour = hour - 12;
-      }
-
-      return '$hour:$minute $period';
-    } catch (e) {
-      return time24;
+      final p = hhmm.split(' ').first.split(':');
+      return DateTime(
+          day.year, day.month, day.day, int.parse(p[0]), int.parse(p[1]));
+    } catch (_) {
+      return null;
     }
   }
 
+  String _fmt(DateTime t) => formatTime(t).split(' ').first;
+
+  // ignore: unused_element
+  String _fmtOld(DateTime t) {
+    final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+    return '${arNum(h)}:${arNum(t.minute.toString().padLeft(2, '0'))}';
+  }
+
+  
+
+  List<_PrayerItem> _prayers(AppCubit cubit) {
+    final t = cubit.azanEntityData?.data.timings;
+    if (t == null) return [];
+    final day = DateTime(_now.year, _now.month, _now.day);
+    final list = <_PrayerItem>[
+      _PrayerItem(tr('الفجر'), Icons.nights_stay_outlined, _parse(t.fajr, day)),
+      _PrayerItem(tr('الشروق'), Icons.wb_twilight_rounded, _parse(t.sunrise, day),
+          isPrayer: false),
+      _PrayerItem(tr('الظهر'), Icons.wb_sunny_outlined, _parse(t.dhuhr, day)),
+      _PrayerItem(tr('العصر'), Icons.sunny_snowing, _parse(t.asr, day)),
+      _PrayerItem(
+          tr('المغرب'), Icons.brightness_4_outlined, _parse(t.maghrib, day)),
+      _PrayerItem(tr('العشاء'), Icons.dark_mode_outlined, _parse(t.isha, day)),
+    ];
+    return list.where((e) => e.time != null).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AppCubit, Appstates>(
+    return BlocBuilder<AppCubit, Appstates>(
       builder: (context, state) {
-        AppCubit cubit = context.read<AppCubit>();
-
+        final cubit = context.read<AppCubit>();
+        final scaffold = Scaffold(
+          backgroundColor: AppStyle.background,
+          body: RefreshIndicator(
+            color: AppStyle.primaryGreen,
+            onRefresh: () async {
+              await cubit.getPrayerTimeFromApi();
+              await _loadPrefs();
+            },
+            child: CustomScrollView(
+              // Clamped: no overscroll bounce revealing the background.
+              physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics()),
+              slivers: [
+                SliverToBoxAdapter(child: _header(cubit, state)),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(16, 18, 16, 32),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _quickActions(),
+                      SizedBox(height: 22),
+                      _continueReading(),
+                      if (_bmSurah != null && _bmVerse != null) ...[
+                        SizedBox(height: 10),
+                        _bookmarkTile(),
+                      ],
+                      SizedBox(height: 26),
+                      _sectionTitle(tr('الأذكار'), Icons.auto_awesome_rounded,
+                          trailing: _azkarHint()),
+                      SizedBox(height: 12),
+                      _azkarStrip(cubit),
+                      SizedBox(height: 26),
+                      _sectionTitle(tr('حديث اليوم'), Icons.format_quote_rounded,
+                          onMore: () =>
+                              navigateTo(context, HadithScreen())),
+                      SizedBox(height: 12),
+                      _hadithCard(),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
         return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Scaffold(
-            backgroundColor: const Color(0xFFF8F9FA),
-            body: FadeTransition(
-              opacity: _fadeAnimation,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildAppBar(cubit),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          textDirection: AppLocale.direction,
+          // iOS: App Store update dialog (Android uses Google Play in-app update).
+          child: Platform.isIOS
+              ? UpgradeAlert(
+                  upgrader: Upgrader(languageCode: 'ar'),
+                  showIgnore: false,
+                  dialogStyle: UpgradeDialogStyle.cupertino,
+                  child: scaffold,
+                )
+              : scaffold,
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Header: greeting, Hijri date, next prayer, prayer row
+  // ---------------------------------------------------------------------------
+  Widget _header(AppCubit cubit, Appstates state) {
+    final hijri =
+        HijriCalendar.fromDate(_now.add(Duration(days: _hijriAdjust)));
+    final greg = DateFormat('EEEE، d MMMM y', dateLocale).format(_now);
+    final prayers = _prayers(cubit);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [Color(0xFF0F5C4A), Color(0xFF0B3D33)],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: -70,
+            top: -40,
+            child: Opacity(
+              opacity: 0.08,
+              child: CustomPaint(
+                size: Size.square(260),
+                painter:
+                    IslamicStarPainter(color: Colors.white, stroke: true),
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_greeting(),
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontSize: 14)),
+                            Text(tr('أذكروه'),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                      _glassIcon(Icons.settings_outlined, () async {
+                        await navigateTo(
+                            context, NotificationSettingsScreen());
+                        _loadPrefs();
+                      }),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  // Hijri date
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () =>
+                        navigateTo(context, EnhancedHijriScreen()),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(18),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.12)),
+                      ),
+                      child: Row(
                         children: [
-                          SizedBox(height: 20.h),
-                          _buildPrayerTimeCard(cubit),
-                          SizedBox(height: 24.h),
-                          _buildSectionHeader(
-                              'الأذكار اليومية', Icons.auto_awesome_rounded),
-                          SizedBox(height: 12.h),
-                          _buildAzkarCards(cubit),
-                          SizedBox(height: 24.h),
-                          _buildSectionHeader('الخدمات', Icons.apps_rounded),
-                          SizedBox(height: 12.h),
-                          _buildServicesGrid(cubit),
-                          SizedBox(height: 30.h),
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: AppStyle.goldColor,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(arNum(hijri.hDay),
+                                style: TextStyle(
+                                    color: Color(0xFF0B3D33),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    '${hijri.longMonthName} ${arNum(hijri.hYear)} ${tr('هـ')}',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700)),
+                                SizedBox(height: 2),
+                                Text(greg,
+                                    style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 12.5)),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.calendar_month_outlined,
+                              color: Colors.white.withOpacity(0.7)),
                         ],
                       ),
                     ),
                   ),
+                  SizedBox(height: 14),
+                  _prayerPanel(prayers, state),
                 ],
               ),
             ),
           ),
-        );
-      },
-      listener: (context, state) {},
+        ],
+      ),
     );
   }
 
-  Widget _buildAppBar(AppCubit cubit) {
-    return SliverAppBar(
-      expandedHeight: 250.h,
-      floating: false,
-      pinned: true,
-      backgroundColor: AppStyle.primaryGreen,
+  Widget _glassIcon(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.white.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
+
+  Widget _prayerPanel(List<_PrayerItem> prayers, Appstates state) {
+    if (prayers.isEmpty) {
+      final loading =
+          state is GetPrayerTimeLoadingState || state is AppInitState;
+      return Container(
+        height: 150,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        alignment: Alignment.center,
+        child: loading
+            ? CircularProgressIndicator(color: AppStyle.primaryGreen)
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.location_off_outlined,
+                      color: AppStyle.textLight),
+                  SizedBox(height: 6),
+                  Text(tr('فعّل الموقع لعرض مواقيت الصلاة')),
+                  TextButton(
+                    onPressed: () =>
+                        context.read<AppCubit>().getPrayerTimeFromApi(),
+                    child: Text(tr('إعادة المحاولة')),
+                  ),
+                ],
+              ),
+      );
+    }
+
+    // Next prayer (only real prayers, not sunrise)
+    _PrayerItem? next;
+    for (final p in prayers) {
+      if (p.isPrayer && p.time!.isAfter(_now)) {
+        next = p;
+        break;
+      }
+    }
+    final nextTime = next?.time ??
+        prayers.first.time!.add(Duration(days: 1)); // Fajr tomorrow
+    final nextName = next?.name ?? tr('الفجر');
+    final remaining = nextTime.difference(_now);
+    String two(int n) => arNum(n.toString().padLeft(2, '0'));
+    final countdown =
+        '${two(remaining.inHours)}:${two(remaining.inMinutes % 60)}:${two(remaining.inSeconds % 60)}';
+
+    // Current period = last prayer whose time has passed.
+    String? current;
+    for (final p in prayers) {
+      if (p.isPrayer && !p.time!.isAfter(_now)) current = p.name;
+    }
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
       elevation: 0,
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(Icons.share_rounded, color: Colors.white, size: 20.sp),
-          ),
-          onPressed: () => cubit.shareMethod(
-            'https://play.google.com/store/apps/details?id=com.islamsalemco.azkroh',
-          ),
-        ),
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child:
-                Icon(Icons.settings_rounded, color: Colors.white, size: 20.sp),
-          ),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const NotificationSettingsScreen()),
-          ),
-        ),
-        SizedBox(width: 8.w),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1B5E20),
-                Color(0xFF2E7D32),
-                Color(0xFF388E3C),
-              ],
-            ),
-          ),
-          child: Stack(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => navigateTo(context, PrayerScreen()),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
             children: [
-              // Decorative patterns
-              Positioned(
-                top: -50.h,
-                right: -50.w,
-                child: Container(
-                  width: 200.r,
-                  height: 200.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -80.h,
-                left: -80.w,
-                child: Container(
-                  width: 250.r,
-                  height: 250.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
-                  ),
-                ),
-              ),
-              // Moon decoration
-              Positioned(
-                top: 60.h,
-                left: 30.w,
-                child: Icon(
-                  Icons.nightlight_round,
-                  size: 40.sp,
-                  color: Colors.white.withOpacity(0.15),
-                ),
-              ),
-              // Content
-              SafeArea(
-                child: Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Spacer(),
-                      // Greeting
-                      Text(
-                        _getGreeting(),
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14.sp,
-                          fontFamily: 'Amiri',
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(tr('الصلاة القادمة'),
+                            style: TextStyle(
+                                color: AppStyle.textLight, fontSize: 12.5)),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(nextName,
+                                style: TextStyle(
+                                    color: AppStyle.darkGreen,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700)),
+                            SizedBox(width: 8),
+                            Text('${formatTime(nextTime)}',
+                                style: TextStyle(
+                                    color: AppStyle.textLight,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600)),
+                          ],
                         ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFE7F2EE),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(tr('متبقي'),
+                            style: TextStyle(
+                                color: AppStyle.primaryGreen, fontSize: 11)),
+                        Text(countdown,
+                            style: TextStyle(
+                                color: AppStyle.primaryGreen,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                fontFeatures: [FontFeature.tabularFigures()])),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Divider(height: 1, color: AppStyle.border),
+              SizedBox(height: 10),
+              Row(
+                children: prayers.map((p) {
+                  final isNext = p.name == nextName;
+                  final isCurrent = p.name == current;
+                  return Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      margin: EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color:
+                            isNext ? AppStyle.primaryGreen : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      SizedBox(height: 2.h),
-                      // App name
-                      Text(
-                        'أذكروه',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32.sp,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Amiri',
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
-                      // Hijri date and status in a row
-                      Wrap(
-                        spacing: 8.w,
-                        runSpacing: 8.h,
+                      child: Column(
                         children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 5.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.calendar_month_rounded,
-                                  color: Colors.white70,
-                                  size: 14.sp,
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  '${_hijri.hDay} ${_hijri.longMonthName} ${_hijri.hYear} هـ',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.sp,
-                                    fontFamily: 'Amiri',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Status badge
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 5.h,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
-                              ),
-                              borderRadius: BorderRadius.circular(16.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      const Color(0xFFFFD700).withOpacity(0.3),
-                                  blurRadius: 6.r,
-                                  offset: Offset(0, 2.h),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.auto_awesome,
-                                  color: const Color(0xFF1B5E20),
-                                  size: 14.sp,
-                                ),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  _getAzkarStatus(),
-                                  style: TextStyle(
-                                    color: const Color(0xFF1B5E20),
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'Amiri',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          Icon(p.icon,
+                              size: 18,
+                              color: isNext
+                                  ? AppStyle.goldColor
+                                  : isCurrent
+                                      ? AppStyle.primaryGreen
+                                      : AppStyle.textLight),
+                          SizedBox(height: 3),
+                          Text(p.name,
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isNext
+                                      ? Colors.white
+                                      : p.isPrayer
+                                          ? AppStyle.textDark
+                                          : AppStyle.textLight)),
+                          Text(_fmt(p.time!),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isNext
+                                      ? Colors.white
+                                      : AppStyle.textDark)),
                         ],
                       ),
-                      SizedBox(height: 8.h),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -348,309 +531,291 @@ class _HomePageScreenState extends State<HomePageScreen>
     );
   }
 
-  Widget _buildPrayerTimeCard(AppCubit cubit) {
-    final hasData = cubit.azanEntityData != null;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF2E7D32),
-            Color(0xFF1B5E20),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppStyle.primaryGreen.withOpacity(0.3),
-            blurRadius: 12.r,
-            offset: Offset(0, 6.h),
-          ),
-        ],
-      ),
-      child: hasData
-          ? _buildPrayerContent(cubit)
-          : Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.r),
-                child: const CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildPrayerContent(AppCubit cubit) {
-    final timings = cubit.azanEntityData!.data.timings;
-    final now = DateTime.now();
-
-    final prayers = [
-      {'name': 'الفجر', 'time': timings.fajr},
-      {'name': 'الظهر', 'time': timings.dhuhr},
-      {'name': 'العصر', 'time': timings.asr},
-      {'name': 'المغرب', 'time': timings.maghrib},
-      {'name': 'العشاء', 'time': timings.isha},
+  // ---------------------------------------------------------------------------
+  // Quick actions grid
+  // ---------------------------------------------------------------------------
+  Widget _quickActions() {
+    final items = <_Action>[
+      _Action(tr('المصحف'), Icons.menu_book_rounded, Color(0xFF0F5C4A),
+          () async {
+        await MushafScreen.openLastRead(context);
+        _loadPrefs();
+      }),
+      _Action(tr('الأحاديث'), Icons.auto_stories_outlined, Color(0xFF8C5A2B),
+          () => navigateTo(context, HadithScreen())),
+      _Action(tr('الصلاة'), Icons.access_time_rounded, Color(0xFF1B6E8C),
+          () => navigateTo(context, PrayerScreen())),
+      _Action(tr('القبلة'), Icons.explore_outlined, Color(0xFF6A4C93),
+          () => navigateTo(context, QibalScreen())),
+      _Action(tr('السبحة'), Icons.fingerprint_rounded, Color(0xFFA8842C),
+          () => navigateTo(context, Sebha())),
+      _Action(tr('الإذاعة'), Icons.radio_outlined, Color(0xFFB3423A),
+          () => navigateTo(context, RadioScreen())),
+      _Action(tr('التقويم'), Icons.calendar_month_outlined, Color(0xFF2E7D6B),
+          () => navigateTo(context, EnhancedHijriScreen())),
+      _Action(tr('الإعدادات'), Icons.tune_rounded, Color(0xFF55606B),
+          () async {
+        await navigateTo(context, NotificationSettingsScreen());
+        _loadPrefs();
+      }),
     ];
 
-    String nextPrayer = prayers[0]['name'] as String;
-    String nextTime = prayers[0]['time'] as String;
-
-    for (var prayer in prayers) {
-      final timeStr = (prayer['time'] as String).split(' ')[0];
-      final parts = timeStr.split(':');
-      final prayerTime = DateTime(now.year, now.month, now.day,
-          int.parse(parts[0]), int.parse(parts[1]));
-      if (prayerTime.isAfter(now)) {
-        nextPrayer = prayer['name'] as String;
-        nextTime = prayer['time'] as String;
-        break;
-      }
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: items.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.86,
+      ),
+      itemBuilder: (_, i) {
+        final a = items[i];
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              a.onTap();
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'الصلاة القادمة',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 12.sp,
-                    fontFamily: 'Amiri',
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: a.color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  child: Icon(a.icon, color: a.color, size: 24),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  nextPrayer,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Amiri',
-                  ),
-                ),
+                SizedBox(height: 8),
+                Text(a.title,
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppStyle.textDark)),
               ],
             ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(14.r),
-              ),
-              child: Text(
-                _formatTime12Hour(nextTime),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Continue reading
+  // ---------------------------------------------------------------------------
+  Widget _continueReading() {
+    final page = (_lastPage ?? 1).clamp(1, 604);
+    String surah = tr('الفاتحة');
+    int juz = 1;
+    try {
+      final entry = qcf.getPageData(page).first as Map;
+      surah = surahName(entry['surah'] as int);
+      juz = qcf.getJuzNumber(entry['surah'] as int, entry['start'] as int);
+    } catch (_) {}
+    final progress = page / 604;
+
+    return Material(
+      color: Color(0xFFFFFBF1),
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () async {
+          await MushafScreen.openLastRead(context);
+          _loadPrefs();
+        },
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AppStyle.goldColor.withOpacity(0.35)),
+          ),
+          child: Row(
+            children: [
+              AppEmblem(size: 58, background: Color(0xFFFFFBF1)),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_lastPage == null ? tr('ابدأ القراءة') : tr('تابع القراءة'),
+                        style: TextStyle(
+                            color: AppStyle.textLight, fontSize: 12.5)),
+                    Text('${tr('سورة')} $surah',
+                        style: TextStyle(
+                            color: AppStyle.darkGreen,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700)),
+                    Text('${tr('الجزء')} ${arNum(juz)} • ${tr('صفحة')} ${arNum(page)}',
+                        style: TextStyle(
+                            color: AppStyle.textLight, fontSize: 12.5)),
+                    SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 5,
+                        color: AppStyle.goldColor,
+                        backgroundColor: AppStyle.border,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              SizedBox(width: 10),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppStyle.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.arrow_forward_rounded,
+                    color: Colors.white),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: 16.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildMiniPrayerTime('الفجر', _formatTime12Hour(timings.fajr)),
-            _buildMiniPrayerTime('الظهر', _formatTime12Hour(timings.dhuhr)),
-            _buildMiniPrayerTime('العصر', _formatTime12Hour(timings.asr)),
-            _buildMiniPrayerTime('المغرب', _formatTime12Hour(timings.maghrib)),
-            _buildMiniPrayerTime('العشاء', _formatTime12Hour(timings.isha)),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildMiniPrayerTime(String name, String time) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          name,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 10.sp,
-            fontFamily: 'Amiri',
-          ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          time,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+  Widget _bookmarkTile() {
+    final s = _bmSurah!, v = _bmVerse!;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        leading: Icon(Icons.bookmark_rounded, color: AppStyle.goldColor),
+        title: Text(tr('العلامة المحفوظة'),
+            style: TextStyle(fontSize: 12.5, color: AppStyle.textLight)),
+        subtitle: Text('${tr('سورة')} ${surahName(s)} • ${tr('الآية')} ${arNum(v)}',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppStyle.textDark)),
+        trailing: Icon(Icons.chevron_right_rounded),
+        onTap: () async {
+          await Navigator.of(context).push(MushafScreen.routeTo(s, verse: v));
+          _loadPrefs();
+        },
+      ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(8.r),
-          decoration: BoxDecoration(
-            color: AppStyle.primaryGreen.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Icon(icon, color: AppStyle.primaryGreen, size: 20.sp),
-        ),
-        SizedBox(width: 12.w),
-        Text(
-          title,
-          style: TextStyle(
-            color: AppStyle.textDark,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Amiri',
-          ),
-        ),
-      ],
+  // ---------------------------------------------------------------------------
+  // Azkar
+  // ---------------------------------------------------------------------------
+  Widget _azkarHint() {
+    final period = _azkarService.getCurrentPeriod();
+    if (period == AzkarPeriod.none) return SizedBox.shrink();
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppStyle.goldColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        period == AzkarPeriod.morning
+            ? tr('حان وقت أذكار الصباح')
+            : tr('حان وقت أذكار المساء'),
+        style: TextStyle(
+            color: AppStyle.darkGold,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600),
+      ),
     );
   }
 
-  Widget _buildAzkarCards(AppCubit cubit) {
+  Widget _azkarStrip(AppCubit cubit) {
+    const icons = [
+      Icons.wb_sunny_rounded,
+      Icons.nights_stay_rounded,
+      Icons.mosque_outlined,
+      Icons.spa_outlined,
+      Icons.shield_moon_outlined,
+    ];
+    const colors = [
+      [Color(0xFFF2B33D), Color(0xFFE07A2F)],
+      [Color(0xFF3B4C8C), Color(0xFF1E2A55)],
+      [Color(0xFF0F5C4A), Color(0xFF0B3D33)],
+      [Color(0xFF6B7772), Color(0xFF3F4A46)],
+      [Color(0xFF8C5A2B), Color(0xFF5E3A1A)],
+    ];
     return SizedBox(
-      height: 150.h,
+      height: 112,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 4.w),
-        separatorBuilder: (context, index) => SizedBox(width: 16.w),
+        physics: BouncingScrollPhysics(),
         itemCount: cubit.azkarMap.length,
-        itemBuilder: (context, index) {
-          final azkar = cubit.azkarMap[index];
-          String azkarType = 'other';
-          if (azkar['title'] == 'أذكار الصباح') {
-            azkarType = 'morning';
-          } else if (azkar['title'] == 'أذكار المساء') {
-            azkarType = 'evening';
-          }
-
-          final isMorning = azkarType == 'morning';
-          final isEvening = azkarType == 'evening';
-          final isCurrentPeriod =
-              (isMorning && _azkarService.isMorningAzkarTime()) ||
-                  (isEvening && _azkarService.isEveningAzkarTime());
-
-          return TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: Duration(milliseconds: 400 + (index * 100)),
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(30 * (1 - value), 0),
-                child: Opacity(opacity: value, child: child),
-              );
-            },
-            child: GestureDetector(
-              onTap: () => navigateTo(
-                context,
-                EnhancedAzkarScreen(
-                  pageTitle: azkar['title'],
-                  listOfDoaaModel: azkar['zekr_contetnt'],
-                  azkarType: azkarType,
-                ),
+        separatorBuilder: (_, __) => SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final azkar = cubit.azkarMap[i];
+          final title = (azkar['title'] as String).trim();
+          String type = 'other';
+          if (title == 'أذكار الصباح') type = 'morning';
+          if (title == 'أذكار المساء') type = 'evening';
+          final active =
+              (type == 'morning' && _azkarService.isMorningAzkarTime()) ||
+                  (type == 'evening' && _azkarService.isEveningAzkarTime());
+          final c = colors[i % colors.length];
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => navigateTo(
+              context,
+              EnhancedAzkarScreen(
+                pageTitle: title,
+                listOfDoaaModel: azkar['zekr_contetnt'],
+                azkarType: type,
               ),
-              child: Container(
-                width: 170.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.r),
-                  image: DecorationImage(
-                    image: AssetImage(azkar['image']),
-                    fit: BoxFit.cover,
-                    colorFilter: ColorFilter.mode(
-                      Colors.black.withOpacity(0.4),
-                      BlendMode.darken,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 10.r,
-                      offset: Offset(0, 4.h),
-                    ),
-                  ],
+            ),
+            child: Container(
+              width: 128,
+              padding: EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: c,
                 ),
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20.r),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (isCurrentPeriod)
-                      Positioned(
-                        top: 12.h,
-                        right: 12.w,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
+                border: active
+                    ? Border.all(color: AppStyle.goldColor, width: 2)
+                    : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icons[i % icons.length],
+                          color: Colors.white, size: 26),
+                      Spacer(),
+                      if (active)
+                        Container(
+                          width: 8,
+                          height: 8,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
-                            ),
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.access_time_rounded,
-                                  color: const Color(0xFF1B5E20), size: 12.sp),
-                              SizedBox(width: 4.w),
-                              Text(
-                                'الآن',
-                                style: TextStyle(
-                                  color: const Color(0xFF1B5E20),
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                              color: AppStyle.goldColor,
+                              shape: BoxShape.circle),
                         ),
-                      ),
-                    Positioned(
-                      bottom: 16.h,
-                      right: 16.w,
-                      left: 16.w,
-                      child: Text(
-                        azkar['title'],
-                        style: TextStyle(
+                    ],
+                  ),
+                  Spacer(),
+                  Text(tr(title),
+                      style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Amiri',
-                          shadows: const [
-                            Shadow(color: Colors.black45, blurRadius: 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700)),
+                ],
               ),
             ),
           );
@@ -659,131 +824,70 @@ class _HomePageScreenState extends State<HomePageScreen>
     );
   }
 
-  Widget _buildServicesGrid(AppCubit cubit) {
-    final services = [
-      {
-        'title': 'المصحف',
-        'icon': 'assets/images/quran-rehal-svgrepo-com.svg',
-        'color': AppStyle.primaryGreen,
-        'bgColor': const Color(0xFFE8F5E9),
-      },
-      {
-        'title': 'السبحة',
-        'icon': 'assets/images/necklace-svgrepo-com.svg',
-        'color': AppStyle.goldColor,
-        'bgColor': const Color(0xFFFFF8E1),
-      },
-      {
-        'title': 'الصلاة',
-        'icon': 'assets/images/mosque-svgrepo-com.svg',
-        'color': AppStyle.darkGreen,
-        'bgColor': const Color(0xFFE0F2F1),
-      },
-      {
-        'title': 'الإذاعة',
-        'icon': 'assets/images/radio-svgrepo-com.svg',
-        'color': const Color(0xFF5C6BC0),
-        'bgColor': const Color(0xFFE8EAF6),
-      },
-      {
-        'title': 'القبلة',
-        'icon': 'assets/images/kaaba-svgrepo-com.svg',
-        'color': const Color(0xFF8D6E63),
-        'bgColor': const Color(0xFFEFEBE9),
-      },
-      {
-        'title': 'التقويم',
-        'icon': 'assets/images/date-svgrepo-com.svg',
-        'color': const Color(0xFF26A69A),
-        'bgColor': const Color(0xFFE0F2F1),
-      },
-    ];
-
-    return Wrap(
-      spacing: 12.w,
-      runSpacing: 12.h,
-      children: List.generate(services.length, (index) {
-        final service = services[index];
-
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 400 + (index * 80)),
-          builder: (context, value, child) {
-            return Transform.scale(
-              scale: 0.8 + (0.2 * value),
-              child: Opacity(opacity: value, child: child),
-            );
-          },
-          child: GestureDetector(
-            onTap: () => navigateTo(context, cubit.screens[index]),
-            child: Container(
-              width: 110.w,
-              height: 110.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: (service['color'] as Color).withOpacity(0.1),
-                    blurRadius: 10.r,
-                    offset: Offset(0, 4.h),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16.r),
-                  onTap: () => navigateTo(context, cubit.screens[index]),
-                  child: Padding(
-                    padding: EdgeInsets.all(12.r),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          flex: 3,
-                          child: Container(
-                            padding: EdgeInsets.all(10.r),
-                            decoration: BoxDecoration(
-                              color: service['bgColor'] as Color,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: SvgPicture.asset(
-                              service['icon'] as String,
-                              width: 26.w,
-                              height: 26.h,
-                              color: service['color'] as Color,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Flexible(
-                          flex: 1,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              service['title'] as String,
-                              style: TextStyle(
-                                color: AppStyle.textDark,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Amiri',
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+  Widget _hadithCard() {
+    return FutureBuilder<Hadith>(
+      future: _dailyHadith,
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
+            alignment: Alignment.center,
+            child:
+                CircularProgressIndicator(color: AppStyle.primaryGreen),
+          );
+        }
+        return HadithCard(
+          hadith: snap.data!,
+          highlight: true,
+          maxLines: 5,
+          onTap: () => navigateTo(context, HadithScreen()),
         );
-      }),
+      },
     );
   }
+
+  Widget _sectionTitle(String title, IconData icon,
+      {VoidCallback? onMore, Widget? trailing}) {
+    return Row(
+      children: [
+        Icon(icon, color: AppStyle.goldColor, size: 20),
+        SizedBox(width: 8),
+        Text(tr(title),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppStyle.textDark)),
+        Spacer(),
+        if (trailing != null) trailing,
+        if (onMore != null)
+          TextButton(
+            onPressed: onMore,
+            child: Text(tr('عرض المزيد'),
+                style: TextStyle(color: AppStyle.primaryGreen)),
+          ),
+      ],
+    );
+  }
+}
+
+class _PrayerItem {
+  final String name;
+  final IconData icon;
+  final DateTime? time;
+  final bool isPrayer;
+
+  _PrayerItem(this.name, this.icon, this.time, {this.isPrayer = true});
+}
+
+class _Action {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  _Action(this.title, this.icon, this.color, this.onTap);
 }

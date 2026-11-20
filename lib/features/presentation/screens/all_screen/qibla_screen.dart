@@ -74,9 +74,9 @@ class _QibalScreenState extends State<QibalScreen>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF1B5E20),
-                Color(0xFF2E7D32),
-                Color(0xFF1B5E20),
+                Color(0xFF0B3D33),
+                Color(0xFF0F5C4A),
+                Color(0xFF0B3D33),
               ],
             ),
           ),
@@ -233,14 +233,14 @@ class _QibalScreenState extends State<QibalScreen>
                 padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 14.h),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
+                    colors: [Color(0xFFD4AF37), Color(0xFFA8842C)],
                   ),
                   borderRadius: BorderRadius.circular(30.r),
                 ),
                 child: Text(
                   'إعادة المحاولة',
                   style: TextStyle(
-                    color: const Color(0xFF1B5E20),
+                    color: const Color(0xFF0B3D33),
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -319,13 +319,13 @@ class _QibalScreenState extends State<QibalScreen>
             padding: EdgeInsets.all(12.r),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
+                colors: [Color(0xFFD4AF37), Color(0xFFA8842C)],
               ),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(
               Icons.mosque_rounded,
-              color: const Color(0xFF1B5E20),
+              color: const Color(0xFF0B3D33),
               size: 24.sp,
             ),
           ),
@@ -374,7 +374,7 @@ class _QibalScreenState extends State<QibalScreen>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.4),
+                      color: const Color(0xFFD4AF37).withOpacity(0.4),
                       blurRadius: 40.r,
                       spreadRadius: 10.r,
                     ),
@@ -392,7 +392,7 @@ class _QibalScreenState extends State<QibalScreen>
             color: Colors.white.withOpacity(0.1),
             border: Border.all(
               color: _isAligned
-                  ? const Color(0xFFFFD700)
+                  ? const Color(0xFFD4AF37)
                   : Colors.white.withOpacity(0.3),
               width: 3.w,
             ),
@@ -420,8 +420,8 @@ class _QibalScreenState extends State<QibalScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFFFFD700),
-                      const Color(0xFFB8860B).withOpacity(0.5),
+                      const Color(0xFFD4AF37),
+                      const Color(0xFFA8842C).withOpacity(0.5),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(2.r),
@@ -433,7 +433,7 @@ class _QibalScreenState extends State<QibalScreen>
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
+                    colors: [Color(0xFFD4AF37), Color(0xFFA8842C)],
                   ),
                 ),
               ),
@@ -456,7 +456,7 @@ class _QibalScreenState extends State<QibalScreen>
             shape: BoxShape.circle,
             gradient: _isAligned
                 ? const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFB8860B)],
+                    colors: [Color(0xFFD4AF37), Color(0xFFA8842C)],
                   )
                 : LinearGradient(
                     colors: [
@@ -467,7 +467,7 @@ class _QibalScreenState extends State<QibalScreen>
           ),
           child: Icon(
             Icons.mosque_rounded,
-            color: _isAligned ? const Color(0xFF1B5E20) : Colors.white,
+            color: _isAligned ? const Color(0xFF0B3D33) : Colors.white,
             size: 30.sp,
           ),
         ),
@@ -482,7 +482,7 @@ class _QibalScreenState extends State<QibalScreen>
 
     if (offset.abs() < 5) {
       statusText = 'أنت في الاتجاه الصحيح! ✓';
-      statusColor = const Color(0xFFFFD700);
+      statusColor = const Color(0xFFD4AF37);
     } else if (offset > 0) {
       statusText = 'أدر لليسار ${offset.toStringAsFixed(1)}°';
       statusColor = Colors.orange;
@@ -499,7 +499,7 @@ class _QibalScreenState extends State<QibalScreen>
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: _isAligned
-              ? const Color(0xFFFFD700).withOpacity(0.5)
+              ? const Color(0xFFD4AF37).withOpacity(0.5)
               : Colors.white.withOpacity(0.2),
         ),
       ),
@@ -692,7 +692,7 @@ class CompassPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: arabicDirections[i],
         style: TextStyle(
-          color: i == 0 ? const Color(0xFFFFD700) : Colors.white70,
+          color: i == 0 ? const Color(0xFFD4AF37) : Colors.white70,
           fontSize: 14,
           fontWeight: FontWeight.bold,
         ),

@@ -2,19 +2,32 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AppStyle {
+  // Design tokens (emerald + gold)
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color background = Color(0xFFF6F4EE);
+  static const Color border = Color(0xFFE6E1D3);
+  static const double radius = 20;
+  static List<BoxShadow> softShadow = [
+    BoxShadow(
+      color: const Color(0xFF0B3D33).withOpacity(0.06),
+      blurRadius: 18,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
   // Islamic Color Palette
-  static const Color primaryGreen = Color(0xFF2E7D32); // Islamic Green
-  static const Color darkGreen = Color(0xFF1B5E20);
-  static const Color lightGreen = Color(0xFF66BB6A);
-  static const Color goldColor = Color(0xFFFFD700); // Islamic Gold
-  static const Color darkGold = Color(0xFFB8860B);
-  static const Color creamColor = Color(0xFFF5F5DC);
+  static const Color primaryGreen = Color(0xFF0F5C4A); // Islamic Green
+  static const Color darkGreen = Color(0xFF0B3D33);
+  static const Color lightGreen = Color(0xFF4FA38C);
+  static const Color goldColor = Color(0xFFD4AF37); // Islamic Gold
+  static const Color darkGold = Color(0xFFA8842C);
+  static const Color creamColor = Color(0xFFFAF6EC);
   static const Color darkBrown = Color(0xFF3E2723);
   static const Color lightBrown = Color(0xFF8D6E63);
   static const Color pureWhite = Color(0xFFFFFFFF);
-  static const Color softGray = Color(0xFFF5F5F5);
-  static const Color textDark = Color(0xFF212121);
-  static const Color textLight = Color(0xFF757575);
+  static const Color softGray = Color(0xFFF6F4EE);
+  static const Color textDark = Color(0xFF1C2B27);
+  static const Color textLight = Color(0xFF6B7772);
 
   // Gradient Colors
   static const LinearGradient islamicGradient = LinearGradient(
@@ -152,11 +165,11 @@ class AppStyle {
   static AppBarTheme islamicAppBarTheme = AppBarTheme(
     backgroundColor: primaryGreen,
     foregroundColor: pureWhite,
-    elevation: 2,
+    elevation: 0,
     centerTitle: true,
     titleTextStyle: const TextStyle(
       color: pureWhite,
-      fontFamily: 'Amiri',
+      fontFamily: 'AppSans',
       fontSize: 22.0,
       fontWeight: FontWeight.bold,
     ),
@@ -166,16 +179,38 @@ class AppStyle {
   static ThemeData islamicTheme = ThemeData(
     primarySwatch: Colors.green,
     primaryColor: primaryGreen,
-    scaffoldBackgroundColor: softGray,
+    scaffoldBackgroundColor: background,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primaryGreen,
+      primary: primaryGreen,
+      secondary: goldColor,
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    }),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: darkGreen,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      contentTextStyle: const TextStyle(fontFamily: 'AppSans', color: pureWhite),
+    ),
     appBarTheme: islamicAppBarTheme,
-    fontFamily: 'Amiri',
+    fontFamily: 'AppSans',
+    // UI text uses the sans font; scripture/azkar widgets set Amiri explicitly.
     textTheme: const TextTheme(
-      headlineLarge: headingTextStyle,
-      headlineMedium: titleTextStyle,
-      bodyLarge: regularTextStyle,
-      bodyMedium: arabicTextStyle,
-      labelLarge: buttonTextStyle,
-      bodySmall: captionTextStyle,
+      headlineLarge: TextStyle(
+          fontFamily: 'AppSans', fontWeight: FontWeight.w700, color: textDark),
+      headlineMedium: TextStyle(
+          fontFamily: 'AppSans', fontWeight: FontWeight.w700, color: textDark),
+      titleLarge: TextStyle(
+          fontFamily: 'AppSans', fontWeight: FontWeight.w700, color: textDark),
+      titleMedium: TextStyle(
+          fontFamily: 'AppSans', fontWeight: FontWeight.w600, color: textDark),
+      bodyLarge: TextStyle(fontFamily: 'AppSans', color: textDark),
+      bodyMedium: TextStyle(fontFamily: 'AppSans', color: textDark),
+      bodySmall: TextStyle(fontFamily: 'AppSans', color: textLight),
+      labelLarge: TextStyle(fontFamily: 'AppSans', fontWeight: FontWeight.w600),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: islamicButtonStyle,

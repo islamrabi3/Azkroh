@@ -1,3 +1,7 @@
+import 'package:azkroh_app/l10n/app_locale.dart';
+import 'package:flutter/foundation.dart';
+import 'package:azkroh_app/features/core/services/prayer_times_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import 'package:azkroh_app/features/core/notification_service.dart';
 
@@ -75,25 +79,31 @@ class DhikrNotificationScheduler {
       final bool dhikrEnabled = prefs['dhikr_reminders'] ?? true;
       final int intervalHours = prefs['dhikr_interval'] ?? 2;
 
+      // Cancel only the periodic reminders (ids 101..112)
+      for (int k = 1; k <= 12; k++) {
+        await _notificationService
+            .cancelNotification(NotificationService.dhikrReminderBaseId + k);
+      }
+
       if (!dhikrEnabled) {
-        print('إشعارات الذكر معطلة');
         return;
       }
 
-      // Cancel existing dhikr notifications
-      await _cancelAllDhikrNotifications();
-
       final now = DateTime.now();
+      final step = intervalHours < 1 ? 1 : intervalHours;
 
-      // Schedule dhikr reminders throughout the day
-      for (int i = 1; i <= 12; i++) {
-        // 12 reminders per day
-        final scheduledTime = now.add(Duration(hours: i * intervalHours));
-        final dhikrText = _getRandomDhikr();
+      // Fixed clock slots during waking hours (08:00 - 22:00), repeating
+      // daily. Fixed slots keep the same times on every app launch.
+      int i = 1;
+      for (int hour = 8; hour <= 22 && i <= 12; hour += step, i++) {
+        var scheduledTime = DateTime(now.year, now.month, now.day, hour, 30);
+        if (!scheduledTime.isAfter(now)) {
+          scheduledTime = scheduledTime.add(const Duration(days: 1));
+        }
 
         await _notificationService.scheduleDhikrReminder(
           id: NotificationService.dhikrReminderBaseId + i,
-          dhikrText: dhikrText,
+          dhikrText: _getRandomDhikr(),
           scheduledTime: scheduledTime,
           isRepeating: true,
         );
@@ -105,62 +115,84 @@ class DhikrNotificationScheduler {
     }
   }
 
-  /// Schedule morning dhikr reminder
+  /// Today's prayer slots from cached coordinates (null if unknown).
+  Future<List<PrayerSlot>?> _todaySlots() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('cached_latitude');
+    final lon = prefs.getDouble('cached_longitude');
+    if (lat == null || lon == null) return null;
+    return PrayerTimesService().slotsFor(lat, lon, DateTime.now());
+  }
+
+  DateTime _nextOccurrence(DateTime t) {
+    final now = DateTime.now();
+    var d = DateTime(now.year, now.month, now.day, t.hour, t.minute);
+    if (!d.isAfter(now)) d = d.add(const Duration(days: 1));
+    return d;
+  }
+
+  /// Morning azkar reminder: 20 minutes after Fajr (06:00 if unknown).
   Future<void> scheduleMorningDhikr() async {
     try {
-      final now = DateTime.now();
-      DateTime morningTime;
+      await _notificationService
+          .cancelNotification(NotificationService.dhikrReminderBaseId + 50);
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('morning_azkar') ?? true)) return;
 
-      // If it's before 6 AM today, schedule for today
-      // Otherwise, schedule for tomorrow
-      if (now.hour < 6) {
-        morningTime = DateTime(now.year, now.month, now.day, 6, 0);
-      } else {
-        morningTime = DateTime(now.year, now.month, now.day + 1, 6, 0);
-      }
-
+      final slots = await _todaySlots();
+      final base = slots != null
+          ? slots.first.time.add(const Duration(minutes: 20))
+          : DateTime(2000, 1, 1, 6, 0);
       final dhikrText = morningDhikr[_random.nextInt(morningDhikr.length)];
 
       await _notificationService.scheduleDhikrReminder(
         id: NotificationService.dhikrReminderBaseId + 50,
-        dhikrText: 'أذكار الصباح: $dhikrText',
-        scheduledTime: morningTime,
-        isRepeating: true, // This will repeat daily at 6 AM
+        title: '☀️ ${tr('أذكار الصباح')}',
+        dhikrText: '$dhikrText\n${tr('افتح التطبيق لقراءة أذكار الصباح كاملة')}',
+        scheduledTime: _nextOccurrence(base),
+        isRepeating: true,
+        payload: 'azkar_morning',
       );
-
-      print('✅ تم جدولة تذكير أذكار الصباح في $morningTime (يتكرر يومياً)');
     } catch (e) {
-      print('❌ خطأ في جدولة أذكار الصباح: $e');
+      debugPrint('❌ morning azkar: $e');
     }
   }
 
-  /// Schedule evening dhikr reminder
+  /// Evening azkar reminder: 15 minutes after Asr (16:30 if unknown).
   Future<void> scheduleEveningDhikr() async {
     try {
-      final now = DateTime.now();
-      DateTime eveningTime;
+      await _notificationService
+          .cancelNotification(NotificationService.dhikrReminderBaseId + 51);
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('evening_azkar') ?? true)) return;
 
-      // If it's before 6 PM today, schedule for today
-      // Otherwise, schedule for tomorrow
-      if (now.hour < 18) {
-        eveningTime = DateTime(now.year, now.month, now.day, 18, 0);
-      } else {
-        eveningTime = DateTime(now.year, now.month, now.day + 1, 18, 0);
-      }
-
+      final slots = await _todaySlots();
+      final base = slots != null
+          ? slots.firstWhere((e) => e.key == 'asr').time
+              .add(const Duration(minutes: 15))
+          : DateTime(2000, 1, 1, 16, 30);
       final dhikrText = eveningDhikr[_random.nextInt(eveningDhikr.length)];
 
       await _notificationService.scheduleDhikrReminder(
         id: NotificationService.dhikrReminderBaseId + 51,
-        dhikrText: 'أذكار المساء: $dhikrText',
-        scheduledTime: eveningTime,
-        isRepeating: true, // This will repeat daily at 6 PM
+        title: '🌙 ${tr('أذكار المساء')}',
+        dhikrText: '$dhikrText\n${tr('افتح التطبيق لقراءة أذكار المساء كاملة')}',
+        scheduledTime: _nextOccurrence(base),
+        isRepeating: true,
+        payload: 'azkar_evening',
       );
-
-      print('✅ تم جدولة تذكير أذكار المساء في $eveningTime (يتكرر يومياً)');
     } catch (e) {
-      print('❌ خطأ في جدولة أذكار المساء: $e');
+      debugPrint('❌ evening azkar: $e');
     }
+  }
+
+  Future<void> setMorningEveningEnabled(
+      {required bool morning, required bool evening}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('morning_azkar', morning);
+    await prefs.setBool('evening_azkar', evening);
+    await scheduleMorningDhikr();
+    await scheduleEveningDhikr();
   }
 
   /// Schedule Quran reading reminder
@@ -268,29 +300,6 @@ class DhikrNotificationScheduler {
     return allDhikr[_random.nextInt(allDhikr.length)];
   }
 
-  /// Cancel all dhikr notifications
-  Future<void> _cancelAllDhikrNotifications() async {
-    // Cancel regular dhikr reminders
-    for (int i = 1; i <= 12; i++) {
-      await _notificationService
-          .cancelNotification(NotificationService.dhikrReminderBaseId + i);
-    }
-
-    // Cancel special dhikr notifications
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 50); // Morning
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 51); // Evening
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 52); // Quran
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 60); // Jummah Kahf
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 61); // Jummah Prayer
-    await _notificationService.cancelNotification(
-        NotificationService.dhikrReminderBaseId + 70); // Islamic occasions
-  }
-
   /// Initialize all dhikr reminders
   Future<void> initializeAllDhikrReminders() async {
     try {
@@ -323,11 +332,7 @@ class DhikrNotificationScheduler {
       dhikrInterval: prefs['dhikr_interval'] ?? 2,
     );
 
-    if (enabled) {
-      await initializeAllDhikrReminders();
-    } else {
-      await _cancelAllDhikrNotifications();
-    }
+    await scheduleDhikrReminders();
   }
 
   /// Update dhikr reminder interval

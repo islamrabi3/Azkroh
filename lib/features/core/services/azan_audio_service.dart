@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Azan Audio Service for playing Azan sounds in the background
+/// Plays the Azan inside the app (preview / iOS full Azan after the 30s
+/// notification sound). The audio is bundled with the app, so it works
+/// offline. Notification sounds use the same recordings natively
+/// (android/app/src/main/res/raw and ios/Runner/*.caf).
 class AzanAudioService {
   static final AzanAudioService _instance = AzanAudioService._internal();
   factory AzanAudioService() => _instance;
@@ -12,254 +15,165 @@ class AzanAudioService {
   AudioPlayer? _audioPlayer;
   bool _isInitialized = false;
 
-  // Available Azan reciters with their audio URLs
+
+  /// Available Adhan voices. All are bundled (offline) and are also used as
+  /// the native notification sound (res/raw on Android, .caf on iOS).
+  /// `sound` is the resource base name; `_fajr` / `_regular` are appended.
   static const Map<String, Map<String, String>> azanReciters = {
     'mishary': {
-      'name': 'مشاري العفاسي',
-      'fajr': 'https://download.tvquran.com/download/selections/315/Azan-Al-Fajr-Meshary-Rashid-Alafasy.mp3',
-      'regular': 'https://download.tvquran.com/download/selections/315/Azan-Meshary-Rashid-Alafasy.mp3',
+      'name': 'مشاري راشد العفاسي',
+      'desc': 'صوت ندي هادئ',
+      'sound': 'azan',
     },
     'makkah': {
-      'name': 'أذان الحرم المكي',
-      'fajr': 'https://www.islamcan.com/audio/adhan/azan1.mp3',
-      'regular': 'https://www.islamcan.com/audio/adhan/azan2.mp3',
+      'name': 'الحرم المكي - الشيخ علي ملا',
+      'desc': 'أذان المسجد الحرام',
+      'sound': 'azan_makkah',
     },
     'madinah': {
-      'name': 'أذان المسجد النبوي',
-      'fajr': 'https://www.islamcan.com/audio/adhan/azan3.mp3',
-      'regular': 'https://www.islamcan.com/audio/adhan/azan4.mp3',
+      'name': 'المسجد النبوي',
+      'desc': 'أذان المسجد النبوي الشريف',
+      'sound': 'azan_madinah',
     },
   };
 
-  // Default Azan URLs (fallback)
-  static const String _defaultFajrAzan = 'https://cdn.aladhan.com/audio/adhans/fajr/mishary.mp3';
-  static const String _defaultRegularAzan = 'https://cdn.aladhan.com/audio/adhans/mishary.mp3';
+  /// Resource base name for [reciter] + prayer type, e.g. azan_makkah_fajr.
+  static String soundName(String reciter, bool isFajr) {
+    final base = azanReciters[reciter]?['sound'] ?? 'azan';
+    return '${base}_${isFajr ? 'fajr' : 'regular'}';
+  }
 
-  /// Initialize the audio service
+  static String assetFor(String reciter, bool isFajr) =>
+      'assets/audio/${soundName(reciter, isFajr)}.mp3';
+
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       _audioPlayer = AudioPlayer();
 
-      // Configure audio session for background playback
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.duckOthers,
         avAudioSessionMode: AVAudioSessionMode.defaultMode,
-        avAudioSessionRouteSharingPolicy: AVAudioSessionRouteSharingPolicy.defaultPolicy,
-        avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
         androidAudioAttributes: AndroidAudioAttributes(
           contentType: AndroidAudioContentType.music,
-          usage: AndroidAudioUsage.notification,
+          usage: AndroidAudioUsage.alarm,
         ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientMayDuck,
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
         androidWillPauseWhenDucked: false,
       ));
 
-      // Handle audio interruptions
-      session.interruptionEventStream.listen((event) {
-        if (event.begin) {
-          // Audio interrupted
-          _audioPlayer?.pause();
-        } else {
-          // Interruption ended
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              _audioPlayer?.play();
-              break;
-          }
-        }
-      });
-
       _isInitialized = true;
-      debugPrint('🔊 AzanAudioService initialized successfully');
     } catch (e) {
       debugPrint('🔊 Error initializing AzanAudioService: $e');
     }
   }
 
-  /// Play Azan for a specific prayer
+  /// Play Azan for a specific prayer. [force] ignores the enabled setting
+  /// (used by the "test" button).
   Future<void> playAzan({
     required String prayerName,
     bool isFajr = false,
+    bool force = false,
+    String? reciter,
   }) async {
     try {
       await initialize();
+      final player = _audioPlayer;
+      if (player == null) return;
 
-      if (_audioPlayer == null) {
-        debugPrint('🔊 AudioPlayer not initialized');
-        return;
-      }
+      if (!force && !await isAzanEnabled()) return;
 
-      // Check if Azan is enabled
-      final isEnabled = await isAzanEnabled();
-      if (!isEnabled) {
-        debugPrint('🔊 Azan is disabled in settings');
-        return;
-      }
+      final fajr = isFajr || prayerName == 'الفجر';
+      final asset = assetFor(reciter ?? await getSelectedReciter(), fajr);
 
-      // Get selected reciter
-      final reciter = await getSelectedReciter();
-      final reciterData = azanReciters[reciter] ?? azanReciters['mishary']!;
-
-      // Get the appropriate Azan URL
-      String azanUrl;
-      if (isFajr || prayerName == 'الفجر') {
-        azanUrl = reciterData['fajr'] ?? _defaultFajrAzan;
-      } else {
-        azanUrl = reciterData['regular'] ?? _defaultRegularAzan;
-      }
-
-      debugPrint('🔊 Playing Azan for $prayerName from: $azanUrl');
-
-      // Stop any currently playing audio
-      await _audioPlayer!.stop();
-
-      // Set the audio source
-      await _audioPlayer!.setUrl(azanUrl);
-
-      // Set volume
-      final volume = await getAzanVolume();
-      await _audioPlayer!.setVolume(volume);
-
-      // Play the Azan
-      await _audioPlayer!.play();
-
-      debugPrint('🔊 Azan started playing for $prayerName');
+      await player.stop();
+      await player.setAsset(asset);
+      await player.setVolume(await getAzanVolume());
+      await player.play();
     } catch (e) {
       debugPrint('🔊 Error playing Azan: $e');
     }
   }
 
-  /// Stop the currently playing Azan
   Future<void> stopAzan() async {
     try {
       await _audioPlayer?.stop();
-      debugPrint('🔊 Azan stopped');
     } catch (e) {
       debugPrint('🔊 Error stopping Azan: $e');
     }
   }
 
-  /// Pause the currently playing Azan
-  Future<void> pauseAzan() async {
-    try {
-      await _audioPlayer?.pause();
-      debugPrint('🔊 Azan paused');
-    } catch (e) {
-      debugPrint('🔊 Error pausing Azan: $e');
-    }
-  }
+  Future<void> pauseAzan() async => _audioPlayer?.pause();
 
-  /// Resume the paused Azan
-  Future<void> resumeAzan() async {
-    try {
-      await _audioPlayer?.play();
-      debugPrint('🔊 Azan resumed');
-    } catch (e) {
-      debugPrint('🔊 Error resuming Azan: $e');
-    }
-  }
+  Future<void> resumeAzan() async => _audioPlayer?.play();
 
-  /// Check if Azan is currently playing
   bool get isPlaying => _audioPlayer?.playing ?? false;
 
-  /// Get the playback state stream
   Stream<PlayerState>? get playerStateStream => _audioPlayer?.playerStateStream;
 
-  /// Check if Azan sound is enabled
   Future<bool> isAzanEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('azan_enabled') ?? true;
   }
 
-  /// Enable or disable Azan sound
   Future<void> setAzanEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('azan_enabled', enabled);
-    debugPrint('🔊 Azan enabled: $enabled');
   }
 
-  /// Get the selected Azan reciter
   Future<String> getSelectedReciter() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('azan_reciter') ?? 'mishary';
+    final r = prefs.getString('azan_reciter') ?? 'mishary';
+    return azanReciters.containsKey(r) ? r : 'mishary';
   }
 
-  /// Set the Azan reciter
   Future<void> setSelectedReciter(String reciter) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('azan_reciter', reciter);
-    debugPrint('🔊 Azan reciter set to: $reciter');
   }
 
-  /// Get Azan volume (0.0 to 1.0)
   Future<double> getAzanVolume() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getDouble('azan_volume') ?? 1.0;
   }
 
-  /// Set Azan volume
   Future<void> setAzanVolume(double volume) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('azan_volume', volume.clamp(0.0, 1.0));
     await _audioPlayer?.setVolume(volume);
-    debugPrint('🔊 Azan volume set to: $volume');
   }
 
-  /// Check if Azan is enabled for a specific prayer
   Future<bool> isAzanEnabledForPrayer(String prayerName) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('azan_${prayerName}_enabled') ?? true;
   }
 
-  /// Enable or disable Azan for a specific prayer
   Future<void> setAzanEnabledForPrayer(String prayerName, bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('azan_${prayerName}_enabled', enabled);
-    debugPrint('🔊 Azan for $prayerName: $enabled');
   }
 
-  /// Preview an Azan sound
+  /// Preview an Azan sound (auto-stops after 15 seconds).
   Future<void> previewAzan(String reciter, {bool isFajr = false}) async {
-    try {
-      await initialize();
-
-      if (_audioPlayer == null) return;
-
-      final reciterData = azanReciters[reciter] ?? azanReciters['mishary']!;
-      final azanUrl = isFajr
-          ? reciterData['fajr'] ?? _defaultFajrAzan
-          : reciterData['regular'] ?? _defaultRegularAzan;
-
-      await _audioPlayer!.stop();
-      await _audioPlayer!.setUrl(azanUrl);
-      await _audioPlayer!.setVolume(await getAzanVolume());
-      await _audioPlayer!.play();
-
-      // Auto stop after 15 seconds for preview
-      Future.delayed(const Duration(seconds: 15), () {
-        if (_audioPlayer?.playing ?? false) {
-          _audioPlayer?.stop();
-        }
-      });
-
-      debugPrint('🔊 Previewing Azan: $reciter');
-    } catch (e) {
-      debugPrint('🔊 Error previewing Azan: $e');
-    }
+    await playAzan(
+      prayerName: isFajr ? 'الفجر' : 'الظهر',
+      isFajr: isFajr,
+      force: true,
+      reciter: reciter,
+    );
+    Future.delayed(const Duration(seconds: 15), () {
+      if (_audioPlayer?.playing ?? false) _audioPlayer?.stop();
+    });
   }
 
-  /// Dispose the audio player
   Future<void> dispose() async {
     await _audioPlayer?.dispose();
     _audioPlayer = null;
     _isInitialized = false;
-    debugPrint('🔊 AzanAudioService disposed');
   }
 }
-

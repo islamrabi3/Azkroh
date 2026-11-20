@@ -120,9 +120,9 @@ class _RadioScreenState extends State<RadioScreen>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF1B5E20),
-                Color(0xFF2E7D32),
-                Color(0xFF1B5E20),
+                Color(0xFF0B3D33),
+                Color(0xFF0F5C4A),
+                Color(0xFF0B3D33),
               ],
             ),
           ),
@@ -277,13 +277,13 @@ class _RadioScreenState extends State<RadioScreen>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Color(0xFFFFD700),
-                        Color(0xFFB8860B),
+                        Color(0xFFD4AF37),
+                        Color(0xFFA8842C),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFFD700).withOpacity(0.3),
+                        color: const Color(0xFFD4AF37).withOpacity(0.3),
                         blurRadius: 10.r,
                       ),
                     ],
@@ -291,7 +291,7 @@ class _RadioScreenState extends State<RadioScreen>
                   child: Center(
                     child: Icon(
                       Icons.mosque_rounded,
-                      color: const Color(0xFF1B5E20),
+                      color: const Color(0xFF0B3D33),
                       size: 35.sp,
                     ),
                   ),
@@ -362,11 +362,11 @@ class _RadioScreenState extends State<RadioScreen>
             end: Alignment.bottomRight,
             colors: isPlaying
                 ? [const Color(0xFFE53935), const Color(0xFFC62828)]
-                : [const Color(0xFFFFD700), const Color(0xFFB8860B)],
+                : [const Color(0xFFD4AF37), const Color(0xFFA8842C)],
           ),
           boxShadow: [
             BoxShadow(
-              color: (isPlaying ? Colors.red : const Color(0xFFFFD700))
+              color: (isPlaying ? Colors.red : const Color(0xFFD4AF37))
                   .withOpacity(0.4),
               blurRadius: 20.r,
               offset: Offset(0, 8.h),
@@ -385,7 +385,7 @@ class _RadioScreenState extends State<RadioScreen>
                 )
               : Icon(
                   isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: isPlaying ? Colors.white : const Color(0xFF1B5E20),
+                  color: isPlaying ? Colors.white : const Color(0xFF0B3D33),
                   size: 40.sp,
                 ),
         ),
@@ -481,14 +481,14 @@ class _RadioScreenState extends State<RadioScreen>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFD700).withOpacity(0.2),
+        color: const Color(0xFFD4AF37).withOpacity(0.2),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: const Color(0xFFFFD700),
+          color: const Color(0xFFD4AF37),
           fontSize: 12.sp,
           fontWeight: FontWeight.w600,
         ),

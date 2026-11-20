@@ -4,6 +4,7 @@ import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:azkroh_app/features/presentation/screens/quran_screen_locally/mushaf_screen.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -221,12 +222,8 @@ class _EnhancedQuranScreenState extends State<EnhancedQuranScreen>
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => EnhancedSurahScreen(
-                  surahNumber: _lastReadSurah!,
-                  initialVerse: _lastReadVerse,
-                ),
-              ),
+              MushafScreen.routeTo(_lastReadSurah!,
+                  verse: _lastReadVerse ?? 1),
             ).then((_) => _loadPreferences());
           },
           child: Container(
@@ -315,12 +312,8 @@ class _EnhancedQuranScreenState extends State<EnhancedQuranScreen>
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => EnhancedSurahScreen(
-                  surahNumber: _bookmarkedSurah!,
-                  initialVerse: _bookmarkedVerse,
-                ),
-              ),
+              MushafScreen.routeTo(_bookmarkedSurah!,
+                  verse: _bookmarkedVerse ?? 1),
             ).then((_) => _loadPreferences());
           },
           child: Container(
@@ -453,10 +446,7 @@ class _EnhancedQuranScreenState extends State<EnhancedQuranScreen>
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EnhancedSurahScreen(surahNumber: surahNumber),
-                    ),
+                    MushafScreen.routeTo(surahNumber),
                   ).then((_) => _loadPreferences());
                 },
                 child: Padding(

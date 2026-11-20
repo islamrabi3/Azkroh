@@ -6,7 +6,10 @@ import 'package:azkroh_app/features/core/services/global_location_service.dart';
 import 'package:azkroh_app/features/presentation/cubit/bloc_observer.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/screens/professional_splash_screen.dart';
+import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -24,7 +27,9 @@ void main() async {
   ]);
 
   // Initialize date formatting for Arabic
-  await initializeDateFormatting('ar', null);
+  await initializeDateFormatting();
+  HijriCalendar.setLocal('ar');
+  await AppLocale.init();
 
   // Initialize notification service
   await NotificationService().initialize();
@@ -32,7 +37,7 @@ void main() async {
   await CacheHelper.init();
 
   // Initialize global location service (will also init timezone)
-  await GlobalLocationService().initialize();
+  // Location is initialised by the splash screen (after the UI is visible).
 
   final document = await getApplicationDocumentsDirectory();
   await Hive.initFlutter(document.path);
@@ -50,28 +55,111 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  final AppCubit _cubit = AppCubit()..getPrayerTimeFromApi();
+  DateTime _lastRefresh = DateTime.now();
+  Duration _lastOffset = DateTime.now().timeZoneOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cubit.close();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state != AppLifecycleState.resumed) return;
+    final now = DateTime.now();
+    final dayChanged = now.day != _lastRefresh.day ||
+        now.difference(_lastRefresh).inHours >= 6;
+    // Device clock / time zone / DST may have changed while in background.
+    await GlobalLocationService().refreshTimezone();
+    if (dayChanged || _lastOffset != now.timeZoneOffset) {
+      _lastRefresh = now;
+      _lastOffset = now.timeZoneOffset;
+      // The user may have travelled: refresh GPS (no-op for a manual city).
+      await GlobalLocationService().getCurrentLocation();
+      _cubit.getPrayerTimeFromApi();
+    }
+  }
+
+  /// Tablets / foldables / desktop: render the phone-designed UI in a centred
+  /// column so every screen keeps its proportions.
+  static const double _maxContentWidth = 600;
+
+  @override
   Widget build(BuildContext context) {
+    final mq = MediaQueryData.fromView(View.of(context));
+    final app = _buildApp();
+    if (mq.size.width <= _maxContentWidth + 120) return app;
+    return ColoredBox(
+      color: const Color(0xFF0B3D33),
+      child: Center(
+        child: SizedBox(
+          width: _maxContentWidth,
+          child: MediaQuery(
+            data: mq.copyWith(
+                size: Size(_maxContentWidth, mq.size.height)),
+            child: app,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildApp() {
     return ScreenUtilInit(
       designSize: const Size(393, 852), // iPhone 14 Pro design size
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return MultiBlocProvider(
-          providers: [
-            BlocProvider(
-              create: (context) => AppCubit()..getPrayerTimeFromApi(),
-            )
-          ],
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'أذكروه - تطبيق الأذكار والقرآن الكريم',
-            locale: const Locale('ar'),
-            theme: AppStyle.islamicTheme,
-            home: const ProfessionalSplashScreen(),
+        // Scale against the (possibly constrained) width this app renders at,
+        // not the full window (ScreenUtilInit reads the raw window size).
+        ScreenUtil.configure(
+          data: MediaQuery.of(context),
+          designSize: const Size(393, 852),
+          minTextAdapt: true,
+          splitScreenMode: true,
+        );
+        return BlocProvider.value(
+          value: _cubit,
+          child: ValueListenableBuilder<String>(
+            valueListenable: AppLocale.code,
+            builder: (context, code, _) => MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'أذكروه',
+              locale: Locale(code),
+              supportedLocales: AppLocale.supportedLocales,
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              theme: AppStyle.islamicTheme,
+              home: const ProfessionalSplashScreen(),
+              // Light status bar by default (most screens have dark headers);
+              // screens like the Mushaf override it with their own region.
+              builder: (context, child) =>
+                  AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle.light
+                    .copyWith(statusBarColor: Colors.transparent),
+                child: child!,
+              ),
+            ),
           ),
         );
       },

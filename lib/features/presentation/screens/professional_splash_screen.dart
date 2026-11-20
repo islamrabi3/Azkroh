@@ -1,11 +1,18 @@
+import 'package:azkroh_app/l10n/app_locale.dart';
+// ignore_for_file: implementation_imports
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' as math;
+
 import 'package:azkroh_app/features/core/services/global_location_service.dart';
 import 'package:azkroh_app/features/presentation/screens/homescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:qcf_quran_plus/qcf_quran_plus.dart' as qcf;
+import 'package:qcf_quran_plus/src/widgets/quran_page/quran_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+/// Splash screen. Does the real start-up work (location, Mushaf data and the
+/// fonts of the last read page) so the Quran opens instantly afterwards.
 class ProfessionalSplashScreen extends StatefulWidget {
   const ProfessionalSplashScreen({super.key});
 
@@ -16,264 +23,162 @@ class ProfessionalSplashScreen extends StatefulWidget {
 
 class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _mainController;
-  late AnimationController _pulseController;
-  late AnimationController _particleController;
+  late final AnimationController _intro;
+  late final AnimationController _spin;
 
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-  late Animation<double> _textOpacity;
-  late Animation<Offset> _textSlide;
-  late Animation<double> _progressOpacity;
-  late Animation<double> _pulseAnimation;
-
-  String _loadingText = 'جاري التحميل...';
-  double _loadingProgress = 0.0;
-
-  final List<_Particle> _particles = [];
-  final Random _random = Random();
+  static const _emerald = Color(0xFF0B3D33);
+  static const _emerald2 = Color(0xFF0F5C4A);
+  static const _gold = Color(0xFFD4AF37);
 
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    _intro = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400))
+      ..forward();
+    _spin =
+        AnimationController(vsync: this, duration: const Duration(seconds: 40))
+          ..repeat();
+    _start();
+  }
 
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+  Future<void> _start() async {
+    final minDelay = Future.delayed(const Duration(milliseconds: 2600));
+    Future<void> guard(Future<void> f) => f
+        .timeout(const Duration(seconds: 6), onTimeout: () {})
+        .catchError((_) {});
+
+    final prefs = await SharedPreferences.getInstance();
+    final lastPage = (prefs.getInt('mushaf_last_page') ?? 1).clamp(1, 604);
+
+    await Future.wait([
+      minDelay,
+      guard(GlobalLocationService().initialize()),
+      guard(QuranRepository.instance.ensureLoaded(qcf.totalPagesCount)),
+      guard(qcf.QcfFontLoader.ensureFontLoaded(lastPage)),
+    ]);
+    // Warm the neighbouring pages in the background.
+    qcf.QcfFontLoader.preloadPages(lastPage, radius: 2);
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 600),
+      pageBuilder: (_, __, ___) => const HomePageScreen(),
+      transitionsBuilder: (_, a, __, child) =>
+          FadeTransition(opacity: a, child: child),
     ));
-
-    _initializeAnimations();
-    _generateParticles();
-    _startLoading();
-  }
-
-  void _initializeAnimations() {
-    _mainController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
-    _particleController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-
-    _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
-      ),
-    );
-
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
-      ),
-    );
-
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.4, 0.7, curve: Curves.easeIn),
-      ),
-    );
-
-    _textSlide = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.4, 0.7, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _progressOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.6, 0.8, curve: Curves.easeIn),
-      ),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    _mainController.forward();
-  }
-
-  void _generateParticles() {
-    for (int i = 0; i < 30; i++) {
-      _particles.add(_Particle(
-        x: _random.nextDouble(),
-        y: _random.nextDouble(),
-        size: _random.nextDouble() * 4 + 2,
-        speed: _random.nextDouble() * 0.3 + 0.1,
-        opacity: _random.nextDouble() * 0.5 + 0.2,
-      ));
-    }
-  }
-
-  Future<void> _startLoading() async {
-    await _loadStep('تهيئة التطبيق...', 0.2);
-    await _loadStep('جاري تحديد الموقع...', 0.4);
-
-    try {
-      await GlobalLocationService().initialize();
-    } catch (e) {
-      debugPrint('Location initialization error: $e');
-    }
-
-    await _loadStep('تحميل البيانات...', 0.6);
-    await _loadStep('جاري التحضير...', 0.8);
-    await _loadStep('تم!', 1.0);
-
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const HomePageScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      );
-    }
-  }
-
-  Future<void> _loadStep(String text, double progress) async {
-    setState(() {
-      _loadingText = text;
-    });
-
-    final startProgress = _loadingProgress;
-    const steps = 20;
-    final increment = (progress - startProgress) / steps;
-
-    for (int i = 0; i < steps; i++) {
-      await Future.delayed(const Duration(milliseconds: 30));
-      if (mounted) {
-        setState(() {
-          _loadingProgress = startProgress + (increment * (i + 1));
-        });
-      }
-    }
   }
 
   @override
   void dispose() {
-    _mainController.dispose();
-    _pulseController.dispose();
-    _particleController.dispose();
+    _intro.dispose();
+    _spin.dispose();
     super.dispose();
   }
 
+  Animation<double> _interval(double a, double b) => CurvedAnimation(
+      parent: _intro, curve: Interval(a, b, curve: Curves.easeOutCubic));
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
+    final emblemFade = _interval(0.0, 0.55);
+    final titleFade = _interval(0.3, 0.8);
+    final ayahFade = _interval(0.4, 0.85);
 
     return Scaffold(
+      backgroundColor: _emerald,
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1B5E20),
-              Color(0xFF2E7D32),
-              Color(0xFF1B5E20),
-            ],
-            stops: [0.0, 0.5, 1.0],
+          gradient: RadialGradient(
+            center: Alignment(0, -0.25),
+            radius: 1.1,
+            colors: [_emerald2, _emerald],
           ),
         ),
         child: Stack(
           children: [
-            AnimatedBuilder(
-              animation: _particleController,
-              builder: (context, child) {
-                return CustomPaint(
-                  size: size,
-                  painter: _ParticlePainter(
-                    particles: _particles,
-                    progress: _particleController.value,
+            Positioned.fill(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _spin,
+                  builder: (_, child) => Transform.rotate(
+                    angle: _spin.value * 2 * math.pi,
+                    child: child,
                   ),
-                );
-              },
-            ),
-            Positioned(
-              top: -100.h,
-              right: -100.w,
-              child: _buildDecorativeCircle(250.r, 0.05),
-            ),
-            Positioned(
-              bottom: -150.h,
-              left: -150.w,
-              child: _buildDecorativeCircle(350.r, 0.03),
-            ),
-            Positioned(
-              top: size.height * 0.3,
-              left: -80.w,
-              child: _buildDecorativeCircle(180.r, 0.04),
+                  child: Opacity(
+                    opacity: 0.07,
+                    child: CustomPaint(
+                      size: Size.square(size.width * 1.4),
+                      painter: const IslamicStarPainter(
+                          color: Colors.white, stroke: true),
+                    ),
+                  ),
+                ),
+              ),
             ),
             SafeArea(
-              child: Center(
+              child: Directionality(
+                textDirection: AppLocale.direction,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const Spacer(flex: 3),
+                    FadeTransition(
+                      opacity: emblemFade,
+                      child: ScaleTransition(
+                        scale:
+                            Tween(begin: 0.85, end: 1.0).animate(emblemFade),
+                        child: const AppEmblem(size: 132),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    FadeTransition(
+                      opacity: titleFade,
+                      child: SlideTransition(
+                        position: Tween(
+                                begin: const Offset(0, 0.25), end: Offset.zero)
+                            .animate(titleFade),
+                        child: Column(
+                          children: [
+                            Text(
+                              tr('أذكروه'),
+                              style: TextStyle(
+                                fontFamily: 'AppSans',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 44,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              tr('القرآن • الأذكار • الصلاة'),
+                              style: TextStyle(
+                                fontFamily: 'AppSans',
+                                fontSize: 15,
+                                color: Colors.white.withOpacity(0.65),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const Spacer(flex: 2),
-                    AnimatedBuilder(
-                      animation:
-                          Listenable.merge([_mainController, _pulseController]),
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _logoScale.value * _pulseAnimation.value,
-                          child: Opacity(
-                            opacity: _logoOpacity.value,
-                            child: _buildLogo(),
-                          ),
-                        );
-                      },
+                    FadeTransition(opacity: ayahFade, child: _ayah()),
+                    const Spacer(flex: 2),
+                    SizedBox(
+                      width: 120,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          minHeight: 3,
+                          backgroundColor: Colors.white.withOpacity(0.12),
+                          valueColor: const AlwaysStoppedAnimation(_gold),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 40.h),
-                    AnimatedBuilder(
-                      animation: _mainController,
-                      builder: (context, child) {
-                        return SlideTransition(
-                          position: _textSlide,
-                          child: Opacity(
-                            opacity: _textOpacity.value,
-                            child: _buildAppName(),
-                          ),
-                        );
-                      },
-                    ),
-                    const Spacer(),
-                    AnimatedBuilder(
-                      animation: _mainController,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: _progressOpacity.value,
-                          child: _buildLoadingSection(),
-                        );
-                      },
-                    ),
-                    SizedBox(height: 60.h),
+                    const SizedBox(height: 36),
                   ],
                 ),
               ),
@@ -284,262 +189,159 @@ class _ProfessionalSplashScreenState extends State<ProfessionalSplashScreen>
     );
   }
 
-  Widget _buildDecorativeCircle(double size, double opacity) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(opacity),
-      ),
-    );
-  }
+  static const _bracketStyle = TextStyle(
+    fontFamily: 'Amiri-Quran',
+    fontSize: 34,
+    color: _gold,
+    height: 1.4,
+  );
 
-  Widget _buildLogo() {
-    return Container(
-      width: 160.r,
-      height: 160.r,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFD700),
-            Color(0xFFB8860B),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.4),
-            blurRadius: 30.r,
-            spreadRadius: 5.r,
+  Widget _ayah() {
+    // Uthmani (Hafs) text of Al-Baqarah 2:152 from the Mushaf data.
+    String text =
+        'فَٱذۡكُرُونِيٓ أَذۡكُرۡكُمۡ وَٱشۡكُرُواْ لِي وَلَا تَكۡفُرُونِ';
+    try {
+      text = qcf
+          .getVerse(2, 152)
+          .replaceAll(RegExp(r'[\s٠-٩۰-۹0-9]+$'), '')
+          .replaceAll(RegExp(r'\s*\n\s*'), ' ')
+          .trim();
+    } catch (_) {}
+    // «فَٱذۡكُرُونِيٓ أَذۡكُرۡكُمۡ» — first two words, on a single line.
+    text = text.split(RegExp(r'\s+')).take(2).join(' ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: _gold.withOpacity(0.35)),
+            ),
+            // Brackets laid out explicitly (left/right) so bidi mirroring of
+            // the ornate parentheses can't flip them.
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Transform.translate(
+                      offset: const Offset(0, -10),
+                      child: Text('\uFD3E', style: _bracketStyle)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      style: qcf.QuranTextStyles.hafsStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        height: 1.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Transform.translate(
+                      offset: const Offset(0, -10),
+                      child: Text('\uFD3F', style: _bracketStyle)),
+                ],
+              ),
+            ),
           ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 20.r,
-            offset: Offset(0, 10.h),
+          const SizedBox(height: 10),
+          Text(
+            tr('سورة البقرة • الآية ١٥٢'),
+            style: TextStyle(
+              fontFamily: 'AppSans',
+              fontSize: 13,
+              color: _gold.withOpacity(0.9),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// App emblem: gold eight-pointed star with an open book.
+class AppEmblem extends StatelessWidget {
+  final double size;
+  final Color background;
+
+  const AppEmblem(
+      {super.key, this.size = 96, this.background = const Color(0xFF0B3D33)});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
+          CustomPaint(
+            size: Size.square(size),
+            painter: const IslamicStarPainter(color: Color(0xFFD4AF37)),
+          ),
           Container(
-            width: 140.r,
-            height: 140.r,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 2.w,
-              ),
-            ),
+            width: size * 0.64,
+            height: size * 0.64,
+            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomPaint(
-                size: Size(60.r, 60.r),
-                painter: _IslamicStarPainter(),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'أذكروه',
-                style: TextStyle(
-                  color: const Color(0xFF1B5E20),
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Amiri',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppName() {
-    return Column(
-      children: [
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFE0E0E0)],
-          ).createShader(bounds),
-          child: Text(
-            'أذكروه',
-            style: TextStyle(
-              fontSize: 48.sp,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Amiri',
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  blurRadius: 10.r,
-                  offset: Offset(2.w, 2.h),
-                ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-            ),
-          ),
-          child: Text(
-            'تطبيق الأذكار والقرآن الكريم',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16.sp,
-              fontFamily: 'Amiri',
-            ),
-          ),
-        ),
-        SizedBox(height: 20.h),
-        Text(
-          '﴿ فَاذْكُرُونِي أَذْكُرْكُمْ ﴾',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 20.sp,
-            fontFamily: 'Amiri-Quran',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoadingSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 50.w),
-      child: Column(
-        children: [
-          Text(
-            _loadingText,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14.sp,
-              fontFamily: 'Amiri',
-            ),
-          ),
-          SizedBox(height: 16.h),
-          Container(
-            height: 6.h,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(3.r),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3.r),
-              child: LinearProgressIndicator(
-                value: _loadingProgress,
-                backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  const Color(0xFFFFD700).withOpacity(0.8),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '${(_loadingProgress * 100).toInt()}%',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
-              fontSize: 12.sp,
-            ),
-          ),
+          Icon(Icons.menu_book_rounded,
+              color: const Color(0xFFD4AF37), size: size * 0.3),
         ],
       ),
     );
   }
 }
 
-class _Particle {
-  double x;
-  double y;
-  final double size;
-  final double speed;
-  final double opacity;
+/// Eight-pointed Islamic star (two overlapping squares).
+class IslamicStarPainter extends CustomPainter {
+  final Color color;
+  final bool stroke;
 
-  _Particle({
-    required this.x,
-    required this.y,
-    required this.size,
-    required this.speed,
-    required this.opacity,
-  });
-}
-
-class _ParticlePainter extends CustomPainter {
-  final List<_Particle> particles;
-  final double progress;
-
-  _ParticlePainter({required this.particles, required this.progress});
+  const IslamicStarPainter({required this.color, this.stroke = false});
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var particle in particles) {
-      particle.y = (particle.y - particle.speed * 0.01) % 1.0;
-      if (particle.y < 0) particle.y = 1.0;
-
-      final paint = Paint()
-        ..color = Colors.white.withOpacity(particle.opacity * 0.5)
-        ..style = PaintingStyle.fill;
-
-      canvas.drawCircle(
-        Offset(particle.x * size.width, particle.y * size.height),
-        particle.size,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
-}
-
-class _IslamicStarPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
     final paint = Paint()
-      ..color = const Color(0xFF1B5E20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..color = color
+      ..style = stroke ? PaintingStyle.stroke : PaintingStyle.fill
+      ..strokeWidth = stroke ? 2 : 0
+      ..isAntiAlias = true;
 
-    final radius = size.width / 2;
-    final innerRadius = radius * 0.4;
-    final path = Path();
-
-    for (int i = 0; i < 8; i++) {
-      final outerAngle = (i * 45 - 90) * pi / 180;
-      final innerAngle = ((i * 45) + 22.5 - 90) * pi / 180;
-
-      final outerX = center.dx + radius * cos(outerAngle);
-      final outerY = center.dy + radius * sin(outerAngle);
-      final innerX = center.dx + innerRadius * cos(innerAngle);
-      final innerY = center.dy + innerRadius * sin(innerAngle);
-
-      if (i == 0) {
-        path.moveTo(outerX, outerY);
-      } else {
-        path.lineTo(outerX, outerY);
+    Path square(double rot, double radius) {
+      final p = Path();
+      for (int i = 0; i < 4; i++) {
+        final a = rot + i * math.pi / 2;
+        final pt = c + Offset(math.cos(a), math.sin(a)) * radius;
+        i == 0 ? p.moveTo(pt.dx, pt.dy) : p.lineTo(pt.dx, pt.dy);
       }
-      path.lineTo(innerX, innerY);
+      return p..close();
     }
-    path.close();
 
-    canvas.drawPath(path, paint);
-    canvas.drawCircle(center, innerRadius * 0.7, paint);
+    canvas.drawPath(
+        Path.combine(
+            PathOperation.union, square(0, r), square(math.pi / 4, r)),
+        paint);
+    if (stroke) {
+      canvas.drawCircle(c, r * 0.72, paint);
+      canvas.drawPath(
+          Path.combine(PathOperation.union, square(math.pi / 8, r * 0.72),
+              square(math.pi / 8 + math.pi / 4, r * 0.72)),
+          paint);
+      canvas.drawCircle(c, r * 0.4, paint);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant IslamicStarPainter old) =>
+      old.color != color || old.stroke != stroke;
 }

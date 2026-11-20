@@ -14,6 +14,12 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		E841B6D34DC8EF4AC983D3D8 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 14AF4B22F7902029E98E3E7B /* Pods_Runner.framework */; };
+		A1A2A3A4A5A6A7A8A9AA0002 /* azan_fajr.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1A2A3A4A5A6A7A8A9AA0001 /* azan_fajr.caf */; };
+		A1A2A3A4A5A6A7A8A9AA0004 /* azan_regular.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1A2A3A4A5A6A7A8A9AA0003 /* azan_regular.caf */; };
+		B1B2B3B4B5B6B7B8B9BA0002 /* azan_makkah_fajr.caf in Resources */ = {isa = PBXBuildFile; fileRef = B1B2B3B4B5B6B7B8B9BA0001 /* azan_makkah_fajr.caf */; };
+		B1B2B3B4B5B6B7B8B9BA0004 /* azan_makkah_regular.caf in Resources */ = {isa = PBXBuildFile; fileRef = B1B2B3B4B5B6B7B8B9BA0003 /* azan_makkah_regular.caf */; };
+		B1B2B3B4B5B6B7B8B9BA0006 /* azan_madinah_fajr.caf in Resources */ = {isa = PBXBuildFile; fileRef = B1B2B3B4B5B6B7B8B9BA0005 /* azan_madinah_fajr.caf */; };
+		B1B2B3B4B5B6B7B8B9BA0008 /* azan_madinah_regular.caf in Resources */ = {isa = PBXBuildFile; fileRef = B1B2B3B4B5B6B7B8B9BA0007 /* azan_madinah_regular.caf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,6 +53,12 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F86DCBD598BC541660C92E80 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		A1A2A3A4A5A6A7A8A9AA0001 /* azan_fajr.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_fajr.caf; sourceTree = "<group>"; };
+		A1A2A3A4A5A6A7A8A9AA0003 /* azan_regular.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_regular.caf; sourceTree = "<group>"; };
+		B1B2B3B4B5B6B7B8B9BA0001 /* azan_makkah_fajr.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_makkah_fajr.caf; sourceTree = "<group>"; };
+		B1B2B3B4B5B6B7B8B9BA0003 /* azan_makkah_regular.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_makkah_regular.caf; sourceTree = "<group>"; };
+		B1B2B3B4B5B6B7B8B9BA0005 /* azan_madinah_fajr.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_madinah_fajr.caf; sourceTree = "<group>"; };
+		B1B2B3B4B5B6B7B8B9BA0007 /* azan_madinah_regular.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = azan_madinah_regular.caf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +118,12 @@
 			children = (
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
+				B1B2B3B4B5B6B7B8B9BA0007 /* azan_madinah_regular.caf */,
+				B1B2B3B4B5B6B7B8B9BA0005 /* azan_madinah_fajr.caf */,
+				B1B2B3B4B5B6B7B8B9BA0003 /* azan_makkah_regular.caf */,
+				B1B2B3B4B5B6B7B8B9BA0001 /* azan_makkah_fajr.caf */,
+				A1A2A3A4A5A6A7A8A9AA0001 /* azan_fajr.caf */,
+				A1A2A3A4A5A6A7A8A9AA0003 /* azan_regular.caf */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
 				97C147021CF9000F007C117D /* Info.plist */,
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
@@ -191,6 +209,12 @@
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
+				B1B2B3B4B5B6B7B8B9BA0008 /* azan_madinah_regular.caf in Resources */,
+				B1B2B3B4B5B6B7B8B9BA0006 /* azan_madinah_fajr.caf in Resources */,
+				B1B2B3B4B5B6B7B8B9BA0004 /* azan_makkah_regular.caf in Resources */,
+				B1B2B3B4B5B6B7B8B9BA0002 /* azan_makkah_fajr.caf in Resources */,
+				A1A2A3A4A5A6A7A8A9AA0002 /* azan_fajr.caf in Resources */,
+				A1A2A3A4A5A6A7A8A9AA0004 /* azan_regular.caf in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -387,8 +411,13 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.islamsalemco.azkroh;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Profile;
@@ -518,9 +547,14 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.islamsalemco.azkroh;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -543,8 +577,13 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.islamsalemco.azkroh;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

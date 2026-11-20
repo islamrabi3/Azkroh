@@ -4,7 +4,6 @@ import 'package:azkroh_app/features/core/services/azkar_state_service.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/cubit/states.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -40,10 +39,10 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
   @override
   void initState() {
     super.initState();
-    _counts = List.generate(
-        widget.listOfDoaaModel.length, (i) => widget.listOfDoaaModel[i].repeatTime);
+    _counts = List.generate(widget.listOfDoaaModel.length,
+        (i) => widget.listOfDoaaModel[i].repeatTime);
     _completed = List.generate(widget.listOfDoaaModel.length, (_) => false);
-    
+
     _progressController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -51,7 +50,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
     _progressAnimation = Tween<double>(begin: 0, end: 0).animate(
       CurvedAnimation(parent: _progressController, curve: Curves.easeOut),
     );
-    
+
     _loadSavedState();
   }
 
@@ -62,11 +61,13 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
   }
 
   Future<void> _loadSavedState() async {
-    _totalRepeatCount = widget.listOfDoaaModel.fold(0, (sum, item) => sum + item.repeatTime);
-    
+    _totalRepeatCount =
+        widget.listOfDoaaModel.fold(0, (sum, item) => sum + item.repeatTime);
+
     if (widget.azkarType == 'morning' || widget.azkarType == 'evening') {
-      final savedCounts = await _stateService.loadAzkarCounts(azkarType: widget.azkarType);
-      
+      final savedCounts =
+          await _stateService.loadAzkarCounts(azkarType: widget.azkarType);
+
       if (savedCounts != null) {
         setState(() {
           for (int i = 0; i < widget.listOfDoaaModel.length; i++) {
@@ -80,7 +81,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
         });
       }
     }
-    
+
     setState(() {
       _isLoading = false;
     });
@@ -118,7 +119,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
       }).catchError((e) {
         debugPrint('❌ Error saving Azkar state: $e');
       });
-      
+
       if (_completed.every((c) => c)) {
         _showCompletionDialog();
       }
@@ -128,10 +129,9 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
   void _updateProgress() {
     final remaining = _counts.fold(0, (sum, count) => sum + count);
     _completedCount = _totalRepeatCount - remaining;
-    final progress = _totalRepeatCount > 0 
-        ? _completedCount / _totalRepeatCount 
-        : 0.0;
-    
+    final progress =
+        _totalRepeatCount > 0 ? _completedCount / _totalRepeatCount : 0.0;
+
     _progressAnimation = Tween<double>(
       begin: _progressAnimation.value,
       end: progress,
@@ -146,7 +146,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Row(
           children: [
             Icon(Icons.check_circle, color: AppStyle.primaryGreen, size: 32.sp),
@@ -180,7 +181,7 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
         ],
       ),
     );
-    
+
     if (widget.azkarType == 'morning' || widget.azkarType == 'evening') {
       _stateService.markAzkarCompleted(azkarType: widget.azkarType);
     }
@@ -190,7 +191,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           'إعادة التعداد؟',
           style: TextStyle(fontFamily: 'Amiri', fontSize: 20.sp),
@@ -204,7 +206,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
             onPressed: () => Navigator.pop(context),
             child: Text(
               'إلغاء',
-              style: TextStyle(fontFamily: 'Amiri', fontSize: 14.sp, color: Colors.grey),
+              style: TextStyle(
+                  fontFamily: 'Amiri', fontSize: 14.sp, color: Colors.grey),
             ),
           ),
           TextButton(
@@ -221,7 +224,10 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
             },
             child: Text(
               'إعادة',
-              style: TextStyle(fontFamily: 'Amiri', fontSize: 14.sp, color: AppStyle.primaryGreen),
+              style: TextStyle(
+                  fontFamily: 'Amiri',
+                  fontSize: 14.sp,
+                  color: AppStyle.primaryGreen),
             ),
           ),
         ],
@@ -417,7 +423,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
     );
   }
 
-  Widget _buildStatItem(String value, String label, IconData icon, Color color) {
+  Widget _buildStatItem(
+      String value, String label, IconData icon, Color color) {
     return Row(
       children: [
         Icon(icon, color: color, size: 20.sp),
@@ -479,7 +486,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
           children: [
             Icon(
               Icons.timer_outlined,
-              color: widget.azkarType == 'morning' ? Colors.orange : Colors.indigo,
+              color:
+                  widget.azkarType == 'morning' ? Colors.orange : Colors.indigo,
               size: 24.sp,
             ),
             SizedBox(width: 12.w),
@@ -489,7 +497,9 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                 style: TextStyle(
                   fontFamily: 'Amiri',
                   fontSize: 14.sp,
-                  color: widget.azkarType == 'morning' ? Colors.orange[800] : Colors.indigo[800],
+                  color: widget.azkarType == 'morning'
+                      ? Colors.orange[800]
+                      : Colors.indigo[800],
                 ),
               ),
             ),
@@ -517,10 +527,12 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
       duration: const Duration(milliseconds: 300),
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: isCompleted ? AppStyle.primaryGreen.withOpacity(0.1) : Colors.white,
+        color:
+            isCompleted ? AppStyle.primaryGreen.withOpacity(0.1) : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: isCompleted
-            ? Border.all(color: AppStyle.primaryGreen.withOpacity(0.5), width: 2.w)
+            ? Border.all(
+                color: AppStyle.primaryGreen.withOpacity(0.5), width: 2.w)
             : null,
         boxShadow: [
           BoxShadow(
@@ -546,11 +558,11 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                     fontFamily: 'Amiri',
                     fontSize: 20.sp,
                     height: 1.8,
-                    color: isCompleted ? AppStyle.primaryGreen : AppStyle.textDark,
+                    color:
+                        isCompleted ? AppStyle.primaryGreen : AppStyle.textDark,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
                 if (doaa.desc != null && doaa.desc!.isNotEmpty) ...[
                   SizedBox(height: 12.h),
                   Container(
@@ -570,10 +582,8 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                     ),
                   ),
                 ],
-                
                 SizedBox(height: 16.h),
                 const Divider(),
-                
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -581,13 +591,18 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                       onTap: () => _decrementCount(index),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 20.w, vertical: 10.h),
                         decoration: BoxDecoration(
                           gradient: isCompleted
-                              ? LinearGradient(
-                                  colors: [AppStyle.primaryGreen, AppStyle.darkGreen])
-                              : LinearGradient(
-                                  colors: [AppStyle.goldColor, AppStyle.darkGold]),
+                              ? LinearGradient(colors: [
+                                  AppStyle.primaryGreen,
+                                  AppStyle.darkGreen
+                                ])
+                              : LinearGradient(colors: [
+                                  AppStyle.goldColor,
+                                  AppStyle.darkGold
+                                ]),
                           borderRadius: BorderRadius.circular(25.r),
                           boxShadow: [
                             BoxShadow(
@@ -624,17 +639,18 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                         ),
                       ),
                     ),
-                    
                     Row(
                       children: [
                         IconButton(
                           icon: Icon(Icons.copy_rounded, size: 22.sp),
                           color: Colors.grey[600],
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: doaa.content ?? ''));
+                            Clipboard.setData(
+                                ClipboardData(text: doaa.content ?? ''));
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('تم النسخ', style: TextStyle(fontSize: 14.sp)),
+                                content: Text('تم النسخ',
+                                    style: TextStyle(fontSize: 14.sp)),
                                 backgroundColor: AppStyle.primaryGreen,
                                 duration: const Duration(seconds: 1),
                               ),
@@ -642,30 +658,57 @@ class _EnhancedAzkarScreenState extends State<EnhancedAzkarScreen>
                           },
                           tooltip: 'نسخ',
                         ),
-                        IconButton(
-                          icon: Icon(Icons.share_rounded, size: 22.sp),
-                          color: Colors.grey[600],
-                          onPressed: () async {
-                            try {
-                              await Share.share(
-                                '${doaa.content ?? ''}\n\n${doaa.desc ?? ''}\n\nمن تطبيق أذكروه',
-                                subject: 'ذكر من تطبيق أذكروه',
-                              );
-                              debugPrint('تمت المشاركة بنجاح');
-                            } catch (e) {
-                              debugPrint('خطأ في المشاركة: $e');
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('حدث خطأ أثناء المشاركة', style: TextStyle(fontSize: 14.sp)),
-                                    backgroundColor: Colors.red,
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          tooltip: 'مشاركة',
+                        // Share button with iOS/iPad support
+                        Builder(
+                          builder: (context) => Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () async {
+                                try {
+                                  final text =
+                                      '${doaa.content ?? ''}\n\n${doaa.desc ?? ''}\n\nمن تطبيق أذكروه';
+
+                                  // Get the button's position for iPad share sheet
+                                  final RenderBox? box =
+                                      context.findRenderObject() as RenderBox?;
+                                  final Offset position =
+                                      box?.localToGlobal(Offset.zero) ??
+                                          Offset.zero;
+                                  final Size size = box?.size ?? Size.zero;
+
+                                  await Share.share(
+                                    text,
+                                    subject: 'ذكر من تطبيق أذكروه',
+                                    sharePositionOrigin: Rect.fromLTWH(
+                                      position.dx,
+                                      position.dy,
+                                      size.width,
+                                      size.height,
+                                    ),
+                                  );
+                                  debugPrint('تمت المشاركة بنجاح');
+                                } catch (e) {
+                                  debugPrint('خطأ في المشاركة: $e');
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('حدث خطأ أثناء المشاركة',
+                                            style: TextStyle(fontSize: 14.sp)),
+                                        backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8.r),
+                              child: Container(
+                                padding: EdgeInsets.all(8.r),
+                                child: Icon(Icons.share_rounded,
+                                    size: 22.sp, color: Colors.grey[600]),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),

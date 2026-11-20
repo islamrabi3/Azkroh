@@ -1,4 +1,10 @@
+import 'package:azkroh_app/l10n/app_locale.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:geocoding/geocoding.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -16,7 +22,100 @@ class GlobalLocationService {
   bool _isInitialized = false;
 
   Position? get currentPosition => _currentPosition;
-  String? get timezoneName => _timezoneName;
+
+  /// Device time zone (used for scheduling).
+  String? get deviceTimezone => _timezoneName;
+
+  /// Time zone of the prayer location: the chosen city's zone when a manual
+  /// city is set, otherwise the device's zone. Used to pick the method.
+  String? get timezoneName => _manualTz ?? _timezoneName;
+
+  String? _cityName;
+  String? _manualTz;
+  bool _manual = false;
+
+  /// Human readable place name (e.g. "القاهرة، مصر").
+  String? get cityName => _cityName;
+  bool get isManual => _manual;
+
+  static const _kManual = 'manual_location_enabled';
+
+  /// Use a city picked by the user instead of GPS.
+  Future<void> setManualLocation({
+    required double lat,
+    required double lon,
+    required String name,
+    String? timezone,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kManual, true);
+    await prefs.setDouble('manual_lat', lat);
+    await prefs.setDouble('manual_lon', lon);
+    await prefs.setString('manual_city', name);
+    if (timezone != null) {
+      await prefs.setString('manual_tz', timezone);
+    } else {
+      await prefs.remove('manual_tz');
+    }
+    _applyManual(prefs);
+    await _cacheLocation();
+  }
+
+  /// Back to automatic GPS location.
+  Future<void> useAutomaticLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kManual, false);
+    _manual = false;
+    _manualTz = null;
+    _cityName = null;
+    await getCurrentLocation();
+  }
+
+  void _applyManual(SharedPreferences prefs) {
+    _manual = true;
+    _manualTz = prefs.getString('manual_tz');
+    _cityName = prefs.getString('manual_city');
+    _currentPosition = Position(
+      latitude: prefs.getDouble('manual_lat')!,
+      longitude: prefs.getDouble('manual_lon')!,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      altitudeAccuracy: 0,
+      headingAccuracy: 0,
+    );
+  }
+
+  /// Re-resolve the city name (e.g. after the app language changes).
+  Future<void> refreshCityName() => _resolveCityName();
+
+  Future<void> _resolveCityName() async {
+    final pos = _currentPosition;
+    if (pos == null || _manual) return;
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final places = await Geocoding(locale: Locale(AppLocale.code.value))
+          .placemarkFromCoordinates(pos.latitude, pos.longitude)
+          .timeout(const Duration(seconds: 8));
+      if (places.isNotEmpty) {
+        final p = places.first;
+        final city = [p.locality, p.administrativeArea]
+            .firstWhere((e) => e != null && e.isNotEmpty, orElse: () => null);
+        final parts = [city, p.country]
+            .where((e) => e != null && e.isNotEmpty)
+            .toList();
+        if (parts.isNotEmpty) {
+          _cityName = parts.join('، ');
+          await prefs.setString('auto_city', _cityName!);
+        }
+      }
+    } catch (_) {
+      _cityName ??= prefs.getString('auto_city');
+    }
+  }
   bool get isInitialized => _isInitialized;
 
   /// Initialize the location service
@@ -29,17 +128,26 @@ class GlobalLocationService {
     // Try to get cached location first
     await _loadCachedLocation();
 
-    // Get current location
-    await getCurrentLocation();
-
-    // Set local timezone
+    // Set local timezone first (fast, no permission needed)
     await _setLocalTimezone();
+
+    // Get current location (falls back to the cached one)
+    await getCurrentLocation().timeout(
+      const Duration(seconds: 12),
+      onTimeout: () => _currentPosition,
+    );
 
     _isInitialized = true;
   }
 
   /// Get current location with permission handling
   Future<Position?> getCurrentLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kManual) ?? false) {
+      _applyManual(prefs);
+      return _currentPosition;
+    }
+    _cityName ??= prefs.getString('auto_city');
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -64,6 +172,7 @@ class GlobalLocationService {
 
       // Cache the location
       await _cacheLocation();
+      unawaited(_resolveCityName());
 
       return _currentPosition;
     } catch (e) {
@@ -171,30 +280,21 @@ class GlobalLocationService {
     return tz.TZDateTime.from(dateTime, tz.local);
   }
 
-  /// Set the local timezone
+  /// Set the local timezone from the device's real IANA zone
+  /// (e.g. "Africa/Cairo"), so DST rules are applied correctly.
   Future<void> _setLocalTimezone() async {
     try {
-      final now = DateTime.now();
-      final offset = now.timeZoneOffset;
-
-      // Find matching timezone
-      final locations = tz.timeZoneDatabase.locations;
-      for (var entry in locations.entries) {
-        final location = entry.value;
-        final locTime = tz.TZDateTime.now(location);
-        if (locTime.timeZoneOffset == offset) {
-          _timezoneName = entry.key;
-          tz.setLocalLocation(location);
-          break;
-        }
-      }
-
-      _timezoneName ??= 'UTC';
+      final info = await FlutterTimezone.getLocalTimezone();
+      _timezoneName = info.identifier;
+      tz.setLocalLocation(tz.getLocation(info.identifier));
     } catch (e) {
       debugPrint('Error setting timezone: $e');
       _timezoneName = 'UTC';
     }
   }
+
+  /// Re-read the device timezone (call on app resume).
+  Future<void> refreshTimezone() => _setLocalTimezone();
 
   /// Cache location to SharedPreferences
   Future<void> _cacheLocation() async {
@@ -220,11 +320,13 @@ class GlobalLocationService {
       final timestamp = prefs.getInt('location_timestamp');
 
       if (lat != null && lon != null) {
-        // Check if cache is less than 24 hours old
-        if (timestamp != null) {
-          final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-          final now = DateTime.now();
-          if (now.difference(cacheTime).inHours < 24) {
+        // Use the cached position even if old; it is refreshed right after
+        // by getCurrentLocation() when GPS is available.
+        {
+          final cacheTime = timestamp != null
+              ? DateTime.fromMillisecondsSinceEpoch(timestamp)
+              : DateTime.now();
+          {
             _currentPosition = Position(
               latitude: lat,
               longitude: lon,

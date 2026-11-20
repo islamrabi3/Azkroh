@@ -51,9 +51,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF1B5E20), // أخضر داكن
-              Color(0xFF2E7D32), // أخضر متوسط
-              Color(0xFF4CAF50), // أخضر فاتح
+              Color(0xFF0B3D33), // أخضر داكن
+              Color(0xFF0F5C4A), // أخضر متوسط
+              Color(0xFF2E8B73), // أخضر فاتح
             ],
           ),
         ),
@@ -83,7 +83,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                       '﷽',
                       style: TextStyle(
                         fontSize: 40,
-                        color: Color(0xFF1B5E20),
+                        color: Color(0xFF0B3D33),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

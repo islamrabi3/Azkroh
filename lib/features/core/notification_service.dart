@@ -1,3 +1,4 @@
+import 'package:azkroh_app/l10n/app_locale.dart';
 import 'dart:io';
 import 'package:azkroh_app/features/core/notification_background_handler.dart';
 import 'package:azkroh_app/features/core/services/azan_audio_service.dart';
@@ -15,10 +16,20 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  static const String _channelId = 'azkroh_notifications';
-  static const String _channelName = 'Azkroh Notifications';
-  static const String _channelDescription =
-      'Notifications for prayer times and dhikr reminders';
+  bool _initialized = false;
+
+  // ---------------------------------------------------------------------------
+  // Channels
+  // On Android 8+ the sound belongs to the channel and can never be changed
+  // after creation, so every sound has its own channel.
+  // ---------------------------------------------------------------------------
+  static const String _legacyChannelId = 'azkroh_notifications';
+
+  static const String prayerSilentChannelId = 'prayer_plain_v2';
+  static const String remindersChannelId = 'reminders_v2';
+
+  /// One channel per Adhan voice and type (Fajr / other prayers).
+  static String azanChannelId(String sound) => '${sound}_v3';
 
   // Notification IDs
   static const int fajrNotificationId = 1;
@@ -29,21 +40,24 @@ class NotificationService {
   static const int dhikrReminderBaseId = 100;
   static const int qiblaReminderBaseId = 200;
 
+  /// Multi-day prayer notifications live in [prayerBaseId, prayerBaseId+999].
+  static const int prayerBaseId = 1000;
+
   /// Initialize the notification service
   Future<void> initialize() async {
-    // Initialize timezone
+    if (_initialized) return;
+
     tz.initializeTimeZones();
 
-    // Android initialization settings
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // iOS initialization settings
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      // Permission is requested later from the home screen (not at launch).
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const InitializationSettings initializationSettings =
@@ -52,9 +66,8 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
-    // Create notification channel for Android (required for Android 8.0+)
     if (Platform.isAndroid) {
-      await _createNotificationChannel();
+      await _createNotificationChannels();
     }
 
     await _flutterLocalNotificationsPlugin.initialize(
@@ -63,68 +76,86 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
-    // Request permissions
-    await _requestPermissions();
+    _initialized = true;
   }
 
-  /// Create notification channel for Android
-  Future<void> _createNotificationChannel() async {
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      _channelId,
-      _channelName,
-      description: _channelDescription,
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  /// Create all Android notification channels.
+  Future<void> _createNotificationChannels() async {
+    final android = _android;
+    if (android == null) return;
+
+    // Old channel had the default sound baked in; remove it.
+    try {
+      await android.deleteNotificationChannel(_legacyChannelId);
+    } catch (_) {}
+
+    for (final old in ['azan_fajr_v2', 'azan_regular_v2']) {
+      try {
+        await android.deleteNotificationChannel(old);
+      } catch (_) {}
+    }
+    for (final entry in AzanAudioService.azanReciters.entries) {
+      for (final fajr in [true, false]) {
+        final sound = AzanAudioService.soundName(entry.key, fajr);
+        await android.createNotificationChannel(AndroidNotificationChannel(
+          azanChannelId(sound),
+          '${fajr ? 'أذان الفجر' : 'الأذان'} - ${entry.value['name']}',
+          description: 'تشغيل الأذان كاملاً عند دخول وقت الصلاة',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(sound),
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+          enableVibration: true,
+        ));
+      }
+    }
+
+    await android.createNotificationChannel(const AndroidNotificationChannel(
+      prayerSilentChannelId,
+      'تنبيه الصلاة (بدون أذان)',
+      description: 'تنبيه بصوت الإشعار العادي عند دخول وقت الصلاة',
       importance: Importance.high,
       playSound: true,
       enableVibration: true,
-      showBadge: true,
-    );
+    ));
 
-    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-        _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-
-    await androidImplementation?.createNotificationChannel(channel);
-    debugPrint('📱 Notification channel created for Android');
+    await android.createNotificationChannel(const AndroidNotificationChannel(
+      remindersChannelId,
+      'الأذكار والتذكيرات',
+      description: 'تذكيرات الأذكار وقبل الصلاة',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    ));
   }
 
-  /// Handle notification tap (foreground)
   void _onNotificationTapped(NotificationResponse notificationResponse) {
+    if (notificationResponse.actionId == 'stop_azan') {
+      stopAzan();
+      return;
+    }
     final String? payload = notificationResponse.payload;
     if (payload != null) {
-      debugPrint('📱 Notification tapped: $payload');
       _handleNotificationNavigation(payload);
     }
   }
 
-  /// Handle navigation based on notification payload
   void _handleNotificationNavigation(String payload) {
-    // Handle Azan playback for prayer notifications
-    if (payload.startsWith('prayer_')) {
+    // On iOS a notification sound is limited to 30 seconds, so when the user
+    // opens a prayer notification we continue with the full Azan in-app.
+    if (payload.startsWith('prayer_') && Platform.isIOS) {
       final prayerName = payload.replaceFirst('prayer_', '');
       _playAzanForPrayer(prayerName);
     }
-
-    // This can be extended to navigate to specific screens
-    switch (payload) {
-      case 'prayer_time':
-        // Navigate to prayer times screen
-        break;
-      case 'dhikr_reminder':
-        // Navigate to dhikr screen
-        break;
-      case 'qibla_reminder':
-        // Navigate to qibla screen
-        break;
-      default:
-        break;
-    }
   }
 
-  /// Play Azan for a specific prayer
   Future<void> _playAzanForPrayer(String prayerName) async {
     try {
       final azanService = AzanAudioService();
-      await azanService.initialize();
       final isEnabled = await azanService.isAzanEnabled();
       final isPrayerEnabled =
           await azanService.isAzanEnabledForPrayer(prayerName);
@@ -134,7 +165,6 @@ class NotificationService {
           prayerName: prayerName,
           isFajr: prayerName == 'الفجر',
         );
-        debugPrint('🔊 Azan played for $prayerName');
       }
     } catch (e) {
       debugPrint('🔊 Error playing Azan: $e');
@@ -145,9 +175,8 @@ class NotificationService {
   Future<void> playAzanNow(
       {String prayerName = 'الظهر', bool isFajr = false}) async {
     try {
-      final azanService = AzanAudioService();
-      await azanService.initialize();
-      await azanService.playAzan(prayerName: prayerName, isFajr: isFajr);
+      await AzanAudioService()
+          .playAzan(prayerName: prayerName, isFajr: isFajr, force: true);
     } catch (e) {
       debugPrint('🔊 Error playing Azan: $e');
     }
@@ -156,231 +185,186 @@ class NotificationService {
   /// Stop Azan if playing
   Future<void> stopAzan() async {
     try {
-      final azanService = AzanAudioService();
-      await azanService.stopAzan();
+      await AzanAudioService().stopAzan();
     } catch (e) {
       debugPrint('🔊 Error stopping Azan: $e');
     }
   }
 
-  /// Request notification permissions
+  /// Ask for notification (and exact alarm) permission. Call once the UI is
+  /// visible so the system dialog doesn't appear over a blank screen.
+  Future<bool> requestPermissions() => _requestPermissions();
+
   Future<bool> _requestPermissions() async {
     if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-
-      // Create channel first
-      await _createNotificationChannel();
-
-      final bool? grantedNotificationPermission =
-          await androidImplementation?.requestNotificationsPermission();
-
-      // Request exact alarms permission for scheduled notifications
-      await androidImplementation?.requestExactAlarmsPermission();
-
-      debugPrint(
-          '📱 Android notification permission: $grantedNotificationPermission');
-      return grantedNotificationPermission ?? false;
+      final android = _android;
+      final bool? granted = await android?.requestNotificationsPermission();
+      await android?.requestExactAlarmsPermission();
+      return granted ?? false;
     } else if (Platform.isIOS) {
       final bool? result = await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-      debugPrint('📱 iOS notification permission: $result');
+          ?.requestPermissions(alert: true, badge: true, sound: true);
       return result ?? false;
     }
     return false;
   }
 
-  /// Schedule prayer time notification
+  /// Notification details for an Adhan notification.
+  NotificationDetails _prayerDetails({
+    required String title,
+    required String body,
+    required bool withAzan,
+    required bool isFajr,
+    String reciter = 'mishary',
+  }) {
+    final sound = AzanAudioService.soundName(reciter, isFajr);
+    final String channelId =
+        withAzan ? azanChannelId(sound) : prayerSilentChannelId;
+    final String channelName = withAzan
+        ? '${isFajr ? 'أذان الفجر' : 'الأذان'} - ${AzanAudioService.azanReciters[reciter]?['name'] ?? ''}'
+        : 'تنبيه الصلاة (بدون أذان)';
+
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        importance: withAzan ? Importance.max : Importance.high,
+        priority: Priority.max,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        sound: withAzan ? RawResourceAndroidNotificationSound(sound) : null,
+        audioAttributesUsage: withAzan
+            ? AudioAttributesUsage.alarm
+            : AudioAttributesUsage.notification,
+        enableVibration: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
+        ),
+        ticker: title,
+        autoCancel: true,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        presentBanner: true,
+        presentList: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+        sound: withAzan ? '$sound.caf' : null,
+      ),
+    );
+  }
+
+  /// Schedule a single (non repeating) prayer notification.
+  ///
+  /// Prayer times change every day, so they must never repeat daily; the
+  /// scheduler books several days ahead instead.
   Future<void> schedulePrayerNotification({
     required int id,
     required String prayerName,
     required DateTime scheduledTime,
     String? customMessage,
     bool playAzan = true,
-    bool repeatDaily = true,
+    bool repeatDaily = false,
+    String? title,
   }) async {
-    final String title = 'وقت صلاة $prayerName';
-    final String body =
-        customMessage ?? 'حان الآن وقت صلاة $prayerName. بارك الله فيك';
+    final String notifTitle =
+        title ?? '${tr('حان الآن وقت صلاة')} ${tr(prayerName)}';
+    final String body = customMessage ?? notifTitle;
 
-    // Ensure channel exists for Android
-    if (Platform.isAndroid) {
-      await _createNotificationChannel();
-
-      // Check and request exact alarms permission on Android
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-
-      // Request exact alarms permission if not granted
-      await androidImplementation?.requestExactAlarmsPermission();
+    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    if (tzScheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
+      return;
     }
 
-    try {
-      // Convert to TZDateTime with proper timezone
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    bool withAzan = playAzan;
+    final azan = AzanAudioService();
+    final reciter = await azan.getSelectedReciter();
+    if (playAzan) {
+      withAzan = await azan.isAzanEnabled() &&
+          await azan.isAzanEnabledForPrayer(prayerName);
+    }
 
-      // Ensure the scheduled time is in the future
-      if (tzScheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
-        debugPrint(
-            '⚠️ Scheduled time is in the past, skipping: $scheduledTime');
-        return;
-      }
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      notifTitle,
+      body,
+      tzScheduledTime,
+      _prayerDetails(
+        title: notifTitle,
+        body: body,
+        withAzan: withAzan,
+        isFajr: prayerName == 'الفجر',
+        reciter: reciter,
+      ),
+      payload: 'prayer_$prayerName',
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: repeatDaily ? DateTimeComponents.time : null,
+    );
+  }
 
-      await _flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzScheduledTime,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDescription,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            playSound: true,
-            enableVibration: true,
-            fullScreenIntent: true,
-            category: AndroidNotificationCategory.alarm,
-            sound: const RawResourceAndroidNotificationSound('adhan'),
-            ongoing: false,
-            autoCancel: true,
-          ),
-          iOS: const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-            interruptionLevel: InterruptionLevel.timeSensitive,
-            sound: 'adhan.wav',
-          ),
+  /// Generic reminder (dhikr / pre-prayer). The full text is always shown.
+  NotificationDetails _reminderDetails(String title, String body) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        remindersChannelId,
+        'الأذكار والتذكيرات',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        enableVibration: true,
+        playSound: true,
+        autoCancel: true,
+        visibility: NotificationVisibility.public,
+        // Shows the whole text when the notification is expanded.
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
         ),
-        payload: 'prayer_$prayerName',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: repeatDaily ? DateTimeComponents.time : null,
-      );
-
-      debugPrint(
-          '✅ Scheduled prayer notification for $prayerName at $scheduledTime (repeatDaily: $repeatDaily)');
-
-      // For iOS, schedule Azan to play when notification arrives
-      if (playAzan && Platform.isIOS) {
-        _scheduleAzanForIOS(prayerName, scheduledTime);
-      }
-    } catch (e) {
-      debugPrint('❌ Error scheduling notification: $e');
-      debugPrint('   Prayer: $prayerName, Time: $scheduledTime');
-      rethrow;
-    }
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        presentBanner: true,
+        presentList: true,
+      ),
+    );
   }
 
-  /// Schedule Azan for iOS (plays automatically when notification arrives)
-  void _scheduleAzanForIOS(String prayerName, DateTime scheduledTime) async {
-    try {
-      final azanService = AzanAudioService();
-      final isEnabled = await azanService.isAzanEnabled();
-      final isPrayerEnabled =
-          await azanService.isAzanEnabledForPrayer(prayerName);
-
-      if (!isEnabled || !isPrayerEnabled) {
-        debugPrint('🔊 Azan is disabled for $prayerName');
-        return;
-      }
-
-      // On iOS, the Azan will play automatically when notification is received
-      // via the background handler
-      debugPrint('🔊 Azan will play automatically for $prayerName on iOS');
-    } catch (e) {
-      debugPrint('🔊 Error scheduling Azan for iOS: $e');
-    }
-  }
-
-  /// Schedule dhikr reminder notification
+  /// Schedule dhikr reminder notification (full text, never truncated).
   Future<void> scheduleDhikrReminder({
     required int id,
     required String dhikrText,
     required DateTime scheduledTime,
     bool isRepeating = true,
+    String? title,
+    String payload = 'dhikr_reminder',
   }) async {
-    const String title = 'تذكير بالذكر';
-    final String body =
-        dhikrText.length > 50 ? '${dhikrText.substring(0, 50)}...' : dhikrText;
-
-    // Ensure channel exists for Android
-    if (Platform.isAndroid) {
-      await _createNotificationChannel();
-
-      // Check and request exact alarms permission on Android
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-
-      // Request exact alarms permission if not granted
-      await androidImplementation?.requestExactAlarmsPermission();
+    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    if (tzScheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
+      return;
     }
 
-    try {
-      // Convert to TZDateTime with proper timezone
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
-
-      // Ensure the scheduled time is in the future
-      if (tzScheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
-        debugPrint(
-            '⚠️ Scheduled time is in the past, skipping: $scheduledTime');
-        return;
-      }
-
-      await _flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzScheduledTime,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDescription,
-            importance: Importance.defaultImportance,
-            priority: Priority.defaultPriority,
-            icon: '@mipmap/ic_launcher',
-            enableVibration: true,
-            playSound: true,
-            autoCancel: true,
-          ),
-          iOS: const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-        payload: 'dhikr_reminder',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: isRepeating ? DateTimeComponents.time : null,
-      );
-
-      debugPrint(
-          '✅ Scheduled dhikr reminder at $scheduledTime (repeating: $isRepeating)');
-    } catch (e) {
-      debugPrint('❌ Error scheduling dhikr reminder: $e');
-      debugPrint(
-          '   Time: $scheduledTime, Text: ${body.substring(0, body.length > 30 ? 30 : body.length)}...');
-      rethrow;
-    }
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title ?? tr('تذكير بالذكر'),
+      dhikrText,
+      tzScheduledTime,
+      _reminderDetails(title ?? tr('تذكير بالذكر'), dhikrText),
+      payload: payload,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: isRepeating ? DateTimeComponents.time : null,
+    );
   }
 
   /// Schedule Qibla direction reminder
@@ -390,32 +374,12 @@ class NotificationService {
     const String title = 'تذكير بالقبلة';
     const String body = 'تذكر أن تتحقق من اتجاه القبلة قبل الصلاة';
 
-    // Ensure channel exists for Android
-    if (Platform.isAndroid) {
-      await _createNotificationChannel();
-    }
-
     await _flutterLocalNotificationsPlugin.zonedSchedule(
       qiblaReminderBaseId,
       title,
       body,
       tz.TZDateTime.from(scheduledTime, tz.local),
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
-          icon: '@mipmap/ic_launcher',
-          enableVibration: true,
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
+      _reminderDetails(title, body),
       payload: 'qibla_reminder',
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
@@ -423,17 +387,14 @@ class NotificationService {
     );
   }
 
-  /// Cancel a specific notification
   Future<void> cancelNotification(int id) async {
     await _flutterLocalNotificationsPlugin.cancel(id);
   }
 
-  /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
   }
 
-  /// Get pending notifications
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     return await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
   }
@@ -441,25 +402,15 @@ class NotificationService {
   /// Check if exact alarms are allowed (Android 12+)
   Future<bool> areExactAlarmsAllowed() async {
     if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-
-      return await androidImplementation?.areNotificationsEnabled() ?? false;
+      return await _android?.canScheduleExactNotifications() ?? false;
     }
-    return true; // iOS doesn't need this check
+    return true;
   }
 
-  /// Log all pending notifications for debugging
   Future<void> logPendingNotifications() async {
     try {
       final pending = await getPendingNotifications();
       debugPrint('📱 Total pending notifications: ${pending.length}');
-      for (final notification in pending) {
-        debugPrint(
-            '   - ID: ${notification.id}, Title: ${notification.title}, Body: ${notification.body}');
-      }
     } catch (e) {
       debugPrint('❌ Error logging pending notifications: $e');
     }
@@ -472,84 +423,49 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
-    debugPrint('📱 Attempting to show notification: $title');
-
-    try {
-      // Ensure channel exists for Android
-      if (Platform.isAndroid) {
-        await _createNotificationChannel();
-      }
-
-      // Request permission again just to be safe on iOS
-      if (Platform.isIOS) {
-        final IOSFlutterLocalNotificationsPlugin? iosPlugin =
-            _flutterLocalNotificationsPlugin
-                .resolvePlatformSpecificImplementation<
-                    IOSFlutterLocalNotificationsPlugin>();
-
-        final bool? granted = await iosPlugin?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        debugPrint('📱 iOS permission granted: $granted');
-      }
-
-      await _flutterLocalNotificationsPlugin.show(
-        id,
-        title,
-        body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDescription,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            playSound: true,
-            enableVibration: true,
-          ),
-          iOS: const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-            interruptionLevel: InterruptionLevel.active,
-          ),
-        ),
-        payload: payload,
-      );
-      debugPrint('📱 Notification sent successfully!');
-    } catch (e) {
-      debugPrint('📱 Error sending notification: $e');
-      rethrow;
-    }
+    await _flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      _reminderDetails(title, body),
+      payload: payload,
+    );
   }
 
-  /// Check if notifications are enabled
+  /// Show an Adhan notification right now (used by the test button).
+  Future<void> showTestAzanNotification({bool isFajr = false}) async {
+    final name = isFajr ? 'الفجر' : 'الظهر';
+    final reciter = await AzanAudioService().getSelectedReciter();
+    const body = 'هذا اختبار لصوت الأذان في الإشعارات';
+    await _flutterLocalNotificationsPlugin.show(
+      9998,
+      'اختبار أذان $name',
+      body,
+      _prayerDetails(
+        title: 'اختبار أذان $name',
+        body: body,
+        withAzan: true,
+        isFajr: isFajr,
+        reciter: reciter,
+      ),
+      payload: 'prayer_test',
+    );
+  }
+
   Future<bool> areNotificationsEnabled() async {
     if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
-      return await androidImplementation?.areNotificationsEnabled() ?? false;
+      return await _android?.areNotificationsEnabled() ?? false;
     } else if (Platform.isIOS) {
-      final IOSFlutterLocalNotificationsPlugin? iosImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                  IOSFlutterLocalNotificationsPlugin>();
-      final bool? result = await iosImplementation?.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      final IOSFlutterLocalNotificationsPlugin? ios =
+          _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      final bool? result =
+          await ios?.requestPermissions(alert: true, badge: true, sound: true);
       return result ?? false;
     }
     return false;
   }
 
-  /// Save notification preferences
   Future<void> saveNotificationPreferences({
     required bool prayerNotifications,
     required bool dhikrReminders,
@@ -563,14 +479,15 @@ class NotificationService {
     await prefs.setInt('dhikr_interval', dhikrInterval);
   }
 
-  /// Load notification preferences
   Future<Map<String, dynamic>> loadNotificationPreferences() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     return {
       'prayer_notifications': prefs.getBool('prayer_notifications') ?? true,
       'dhikr_reminders': prefs.getBool('dhikr_reminders') ?? true,
       'qibla_reminders': prefs.getBool('qibla_reminders') ?? false,
-      'dhikr_interval': prefs.getInt('dhikr_interval') ?? 2, // Default 2 hours
+      'dhikr_interval': prefs.getInt('dhikr_interval') ?? 2,
+      'morning_azkar': prefs.getBool('morning_azkar') ?? true,
+      'evening_azkar': prefs.getBool('evening_azkar') ?? true,
     };
   }
 }

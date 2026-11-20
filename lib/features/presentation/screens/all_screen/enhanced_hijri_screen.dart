@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -51,7 +52,13 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
   void initState() {
     super.initState();
     _hijri = HijriCalendar.now();
-    HijriCalendar.setLocal('ar');
+    SharedPreferences.getInstance().then((prefs) {
+      final adj = prefs.getInt('hijri_adjust') ?? 0;
+      if (adj != 0 && mounted) {
+        setState(() => _hijri =
+            HijriCalendar.fromDate(DateTime.now().add(Duration(days: adj))));
+      }
+    });
     _gregorian = DateTime.now();
     
     _animationController = AnimationController(
@@ -229,7 +236,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
             style: TextStyle(
               color: Colors.white70,
               fontSize: 18.sp,
-              fontFamily: 'Amiri',
+              fontFamily: 'AppSans',
             ),
           ),
           SizedBox(height: 8.h),
@@ -251,7 +258,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                   color: Colors.white,
                   fontSize: 48.sp,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Amiri',
+                  fontFamily: 'AppSans',
                 ),
               ),
             ),
@@ -262,7 +269,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
             style: TextStyle(
               color: Colors.white,
               fontSize: 32.sp,
-              fontFamily: 'Amiri',
+              fontFamily: 'AppSans',
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -278,7 +285,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20.sp,
-                fontFamily: 'Amiri',
+                fontFamily: 'AppSans',
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -336,7 +343,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                     color: AppStyle.textDark,
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'Amiri',
+                    fontFamily: 'AppSans',
                   ),
                 ),
               ],
@@ -405,7 +412,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                     color: AppStyle.textDark,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
-                    fontFamily: 'Amiri',
+                    fontFamily: 'AppSans',
                   ),
                 ),
               ],
@@ -433,7 +440,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                 color: AppStyle.textDark,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Amiri',
+                fontFamily: 'AppSans',
               ),
             ),
           ),
@@ -495,7 +502,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
               style: TextStyle(
                 color: AppStyle.textDark,
                 fontSize: 16.sp,
-                fontFamily: 'Amiri',
+                fontFamily: 'AppSans',
               ),
             ),
           ),
@@ -518,7 +525,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                 color: AppStyle.textDark,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Amiri',
+                fontFamily: 'AppSans',
               ),
             ),
           ),
@@ -578,7 +585,7 @@ class _EnhancedHijriScreenState extends State<EnhancedHijriScreen>
                               : AppStyle.textDark,
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'Amiri',
+                          fontFamily: 'AppSans',
                         ),
                         textAlign: TextAlign.center,
                       ),
