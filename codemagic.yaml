@@ -1,0 +1,156 @@
+# Codemagic CI/CD for Azkroh (Shorebird code push).
+#
+# One-time setup in Codemagic (Team → Global variables & secrets / Code signing):
+#   • Group "shorebird":   SHOREBIRD_TOKEN  (Shorebird Console → Settings →
+#                          Service accounts → Create key; mark Secure)
+#   • Group "play_store":  GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (Google Play
+#                          service account JSON; mark Secure)
+#   • Android keystore:    upload android/upload-keystore.jks with the
+#                          reference name "azkroh_keystore"
+#   • App Store Connect:   Team integrations → Developer Portal → add an
+#                          API key named "Azkroh ASC"
+#
+# Workflows (all started manually from Codemagic):
+#   android-release / ios-release  → new Shorebird release + store upload
+#   android-patch   / ios-patch    → Shorebird patch for an existing release
+
+definitions:
+  env_versions: &env_versions
+    flutter: 3.41.6
+    xcode: 26.3          # keep the same Xcode for an iOS release and its patches
+    cocoapods: 1.16.2
+  vars: &vars
+    FLUTTER_VERSION: 3.41.6
+    BUNDLE_ID: com.islamsalemco.azkroh
+    PACKAGE_NAME: com.islamsalemco.azkroh
+    APP_STORE_APPLE_ID: 6755852829
+
+  scripts:
+    - &shorebird_install
+      name: Install Shorebird
+      script: |
+        curl -fsSL https://shorebird.dev/install.sh | bash
+        echo PATH="$HOME/.shorebird/bin:$PATH" >> $CM_ENV
+    - &pub_get
+      name: Get packages
+      script: flutter pub get
+    - &ios_signing_files
+      # Certificates/profiles come from ios_signing + the App Store Connect
+      # integration; this writes /Users/builder/export_options.plist.
+      name: iOS code signing
+      script: |
+        xcode-project use-profiles --custom-export-options={\"manageAppVersionAndBuildNumber\":false}
+
+workflows:
+  android-release:
+    name: Android release (Shorebird → Play internal)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+        - play_store
+      vars:
+        <<: *vars
+      android_signing:
+        - azkroh_keystore
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - name: Shorebird release (Android)
+        script: |
+          shorebird release android \
+            --flutter-version="$FLUTTER_VERSION"
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  ios-release:
+    name: iOS release (Shorebird → TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: Azkroh ASC
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+      vars:
+        <<: *vars
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.islamsalemco.azkroh
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - *ios_signing_files
+      - name: Shorebird release (iOS)
+        script: |
+          shorebird release ios \
+            --flutter-version="$FLUTTER_VERSION" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-patch:
+    name: Android patch (Shorebird)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    inputs:
+      release_version:
+        description: Release version to patch (e.g. 1.1.3+25)
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+      vars:
+        <<: *vars
+      android_signing:
+        - azkroh_keystore
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - name: Shorebird patch (Android)
+        script: |
+          shorebird patch android \
+            --release-version=${{ inputs.release_version }} \
+            --track=stable
+
+  ios-patch:
+    name: iOS patch (Shorebird)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: Azkroh ASC
+    inputs:
+      release_version:
+        description: Release version to patch (e.g. 1.1.3+25)
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+      vars:
+        <<: *vars
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.islamsalemco.azkroh
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - *ios_signing_files
+      - name: Shorebird patch (iOS)
+        script: |
+          shorebird patch ios \
+            --release-version=${{ inputs.release_version }} \
+            --track=stable \
+            --export-options-plist=/Users/builder/export_options.plist
