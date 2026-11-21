@@ -57,3 +57,7 @@ android/key.properties
 azkroh-*.json
 *-service-account*.json
 *.p8
+*.cer
+*.p12
+*.mobileprovision
+*.certSigningRequest
