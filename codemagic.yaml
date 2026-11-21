@@ -154,3 +154,102 @@ workflows:
             --release-version=${{ inputs.release_version }} \
             --track=stable \
             --export-options-plist=/Users/builder/export_options.plist
+
+  # ---------------------------------------------------------------------------
+  # Automatic (tag-triggered): Android + iOS in one build
+  #   git tag release-1.1.3+25 && git push origin release-1.1.3+25
+  #   git tag patch-1.1.3+25   && git push origin patch-1.1.3+25
+  # A plain push does nothing.
+  # ---------------------------------------------------------------------------
+  release-all:
+    name: Release Android + iOS (tag release-*)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    integrations:
+      app_store_connect: Azkroh ASC
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'release-*'
+          include: true
+      cancel_previous_builds: false
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+        - play_store
+      vars:
+        <<: *vars
+      android_signing:
+        - azkroh_keystore
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.islamsalemco.azkroh
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - *ios_signing_files
+      - name: Check tag matches pubspec version
+        script: |
+          TAG_VERSION="${CM_TAG#release-}"
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "Tag $CM_TAG does not match pubspec version $PUBSPEC_VERSION"
+            exit 1
+          fi
+      - name: Shorebird release (Android)
+        script: shorebird release android --flutter-version="$FLUTTER_VERSION"
+      - name: Shorebird release (iOS)
+        script: |
+          shorebird release ios \
+            --flutter-version="$FLUTTER_VERSION" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - build/ios/ipa/*.ipa
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  patch-all:
+    name: Patch Android + iOS (tag patch-*)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    integrations:
+      app_store_connect: Azkroh ASC
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'patch-*'
+          include: true
+      cancel_previous_builds: false
+    environment:
+      <<: *env_versions
+      groups:
+        - shorebird
+      vars:
+        <<: *vars
+      android_signing:
+        - azkroh_keystore
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.islamsalemco.azkroh
+    scripts:
+      - *shorebird_install
+      - *pub_get
+      - *ios_signing_files
+      - name: Shorebird patch (Android + iOS)
+        script: |
+          RELEASE_VERSION="${CM_TAG#patch-}"
+          echo "Patching release $RELEASE_VERSION"
+          shorebird patch android --release-version="$RELEASE_VERSION" --track=stable
+          shorebird patch ios --release-version="$RELEASE_VERSION" --track=stable \
+            --export-options-plist=/Users/builder/export_options.plist
