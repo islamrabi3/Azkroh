@@ -40,12 +40,27 @@ class RemoteContentService {
   final ValueNotifier<List<ListenReciter>> reciters =
       ValueNotifier(const []);
 
+  /// Dashboard overrides for built-in reciters: key -> hidden / featured.
+  /// Keys: 'mp3quran:<id>' or 'builtin:<slug>'.
+  Set<String> hiddenKeys = {};
+  List<String> featuredKeys = const [];
+
+  static String keyFor(ListenReciter r) => r.id == -1001
+      ? 'builtin:hosni_omar'
+      : r.id > 0
+          ? 'mp3quran:${r.id}'
+          : 'remote:${r.id}';
+
+  bool isHidden(ListenReciter r) => hiddenKeys.contains(keyFor(r));
+
   static const _kItems = 'remote_content_items';
   static const _kReciters = 'remote_reciters';
+  static const _kOverrides = 'remote_reciter_overrides';
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _apply(prefs.getString(_kItems), prefs.getString(_kReciters));
+    _apply(prefs.getString(_kItems), prefs.getString(_kReciters),
+        prefs.getString(_kOverrides));
     if (!Backend.isReady) return;
     try {
       final c = Backend.client;
@@ -56,20 +71,38 @@ class RemoteContentService {
           .order('sort');
       final rec = await c
           .from('reciters')
-          .select('id,name,riwaya,group_name,sort,recitations(surah,url)')
+          .select(
+              'id,name,riwaya,group_name,sort,server_url,surahs,recitations(surah,url)')
           .eq('is_published', true)
+          .order('sort');
+      final ov = await c
+          .from('reciter_overrides')
+          .select('key,hidden,featured,sort')
           .order('sort');
       final a = jsonEncode(rows);
       final b = jsonEncode(rec);
+      final o = jsonEncode(ov);
       await prefs.setString(_kItems, a);
       await prefs.setString(_kReciters, b);
-      _apply(a, b);
+      await prefs.setString(_kOverrides, o);
+      _apply(a, b, o);
     } catch (e) {
       debugPrint('remote content: $e');
     }
   }
 
-  void _apply(String? itemsJson, String? recitersJson) {
+  void _apply(String? itemsJson, String? recitersJson, String? overridesJson) {
+    if (overridesJson != null) {
+      final list = (jsonDecode(overridesJson) as List).cast<Map>();
+      hiddenKeys = {
+        for (final o in list)
+          if (o['hidden'] == true) o['key'] as String
+      };
+      featuredKeys = [
+        for (final o in list)
+          if (o['featured'] == true && o['hidden'] != true) o['key'] as String
+      ];
+    }
     if (itemsJson != null) {
       items.value = (jsonDecode(itemsJson) as List)
           .map((e) => RemoteItem.fromJson(e as Map))
@@ -78,6 +111,21 @@ class RemoteContentService {
     if (recitersJson != null) {
       final out = <ListenReciter>[];
       for (final r in jsonDecode(recitersJson) as List) {
+        final id = -(2000 + out.length);
+        final label =
+            '${r['riwaya'] ?? 'حفص عن عاصم'}${r['group_name'] != null ? ' (${r['group_name']})' : ''}';
+        // Added by link: a folder with 001.mp3 ... 114.mp3.
+        final link = (r['server_url'] as String?)?.trim();
+        if (link != null && link.isNotEmpty) {
+          final surahs = ((r['surahs'] as List?) ?? const [])
+              .map((e) => (e as num).toInt())
+              .toList();
+          out.add(ListenReciter(id, (r['name'] as String).trim(), [
+            Moshaf(id, label, link.endsWith('/') ? link : '$link/',
+                surahs.isEmpty ? List<int>.generate(114, (i) => i + 1) : surahs),
+          ]));
+          continue;
+        }
         final recs = ((r['recitations'] as List?) ?? const [])
             .map((e) => e as Map)
             .toList()
@@ -87,10 +135,9 @@ class RemoteContentService {
         // as the Moshaf "server".
         final first = recs.first['url'] as String;
         final server = first.substring(0, first.lastIndexOf('/') + 1);
-        final id = -(2000 + out.length);
         out.add(ListenReciter(id, (r['name'] as String).trim(), [
-          Moshaf(id, '${r['riwaya'] ?? 'حفص عن عاصم'}${r['group_name'] != null ? ' (${r['group_name']})' : ''}',
-              server, recs.map((e) => (e['surah'] as num).toInt()).toList()),
+          Moshaf(id, label, server,
+              recs.map((e) => (e['surah'] as num).toInt()).toList()),
         ]));
       }
       reciters.value = out;

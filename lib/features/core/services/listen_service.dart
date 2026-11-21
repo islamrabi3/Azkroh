@@ -116,11 +116,11 @@ class ListenService {
 
   List<ListenReciter>? _reciters;
 
-  /// Reciters from Al-Hawamdiya not on mp3quran.net, served from other
-  /// sources. Shown first in their own section.
+  /// Built-in reciters not on mp3quran.net, served from other sources.
+  /// Shown first in the featured row; can be hidden from the dashboard.
   static final List<ListenReciter> hawamdiya = [
     ListenReciter(-1001, 'محمد حسني عمر', [
-      Moshaf(-1001, 'حفص عن عاصم - مرتل (الحوامدية)',
+      Moshaf(-1001, 'حفص عن عاصم - مرتل',
           'https://media.way2quran.com/mohamed-hosni-omar/hafs-an-asim/',
           List<int>.generate(114, (i) => i + 1)),
     ]),
@@ -148,11 +148,12 @@ class ListenService {
       } catch (_) {}
     }
     if (body == null) throw Exception('offline');
+    final remote = RemoteContentService.instance;
     _reciters = [
       ...hawamdiya,
-      ...RemoteContentService.instance.reciters.value,
+      ...remote.reciters.value,
       ...await compute(_parse, body),
-    ];
+    ].where((r) => !remote.isHidden(r)).toList();
     return _reciters!;
   }
 

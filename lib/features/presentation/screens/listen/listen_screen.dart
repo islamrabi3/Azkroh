@@ -196,6 +196,19 @@ class _RecitersTabState extends State<_RecitersTab>
   List<ListenReciter> _famousOf(List<ListenReciter> all) {
     if (_featured != null) return _featured!;
     final out = <ListenReciter>[];
+    // Reciters starred in the dashboard come first, then reciters added
+    // outside the mp3quran library (built-in and from the dashboard).
+    for (final k in RemoteContentService.instance.featuredKeys) {
+      for (final r in all) {
+        if (RemoteContentService.keyFor(r) == k && !out.contains(r)) {
+          out.add(r);
+          break;
+        }
+      }
+    }
+    for (final r in all) {
+      if (r.id < 0 && !out.contains(r)) out.add(r);
+    }
     for (final f in _famous) {
       for (final r in all) {
         if (searchKey(r.name).contains(f) && !out.contains(r)) {
@@ -240,11 +253,6 @@ class _RecitersTabState extends State<_RecitersTab>
             .toList()
           ..sort();
         final browsing = _q.trim().isEmpty && _letter == null;
-        // Hawamdiya reciters: built-in + uploaded from the dashboard.
-        final local = [
-          ...ListenService.hawamdiya,
-          ...RemoteContentService.instance.reciters.value,
-        ];
 
         return CustomScrollView(
           physics: const ClampingScrollPhysics(),
@@ -259,24 +267,6 @@ class _RecitersTabState extends State<_RecitersTab>
                 ),
               ),
             ),
-            if (browsing) ...[
-              _sectionTitle(tr('قراء الحوامدية')),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _ReciterTile(
-                        reciter: local[i],
-                        onTap: () => _open(local[i]),
-                      ),
-                    ),
-                    childCount: local.length,
-                  ),
-                ),
-              ),
-            ],
             if (browsing && famous.isNotEmpty) ...[
               _sectionTitle(tr('قراء مشهورون')),
               SliverToBoxAdapter(
