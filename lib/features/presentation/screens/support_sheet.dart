@@ -10,10 +10,10 @@ import 'package:flutter/services.dart';
 /// Wallet number for donations (Egyptian mobile wallet).
 const String kSupportWallet = '01554860861';
 
-/// Apple guideline 3.1.1 forbids asking for money outside In-App Purchase
-/// (developer "tips"/donations), so the card is hidden on iOS unless this is
-/// switched on.
-const bool kShowSupportOnIos = false;
+/// Shown on iOS too at the owner's request. Note: Apple guideline 3.1.1
+/// restricts asking for money outside In-App Purchase, so App Review may
+/// reject a build that shows it; set to false to hide it on iOS.
+const bool kShowSupportOnIos = true;
 
 bool get showSupportCard => !Platform.isIOS || kShowSupportOnIos;
 
