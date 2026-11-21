@@ -104,6 +104,7 @@ class MushafPalette {
 class _MushafScreenState extends State<MushafScreen> {
   static const _prefDark = 'mushaf_dark_mode';
   static const _prefTajweed = 'mushaf_tajweed';
+  static const _prefFocus = 'mushaf_focus_mode';
 
   late final PageController _controller;
   late int _page;
@@ -199,6 +200,7 @@ class _MushafScreenState extends State<MushafScreen> {
             Brightness.dark;
     _dark = prefs.getBool(_prefDark) ?? systemDark;
     _tajweed = prefs.getBool(_prefTajweed) ?? false;
+    _showChrome = !(prefs.getBool(_prefFocus) ?? false);
     _bookmarkPage = prefs.getInt('mushaf_bookmark_page');
     if (_bookmarkPage != null) {
       _bmSurah = prefs.getInt('bookmarkedSurah');
@@ -414,11 +416,15 @@ class _MushafScreenState extends State<MushafScreen> {
       });
 
   void _onBackgroundTap() {
-    if (_selSurah != null) {
-      _clearSelection();
-    } else {
-      setState(() => _showChrome = !_showChrome);
-    }
+    if (_selSurah != null) _clearSelection();
+  }
+
+  /// Reading mode: hides the top bar and page pill so only the Quran shows.
+  Future<void> _setFocus(bool on) async {
+    HapticFeedback.selectionClick();
+    setState(() => _showChrome = !on);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefFocus, on);
   }
 
   String _verseRef(int surah, int verse) {
@@ -713,133 +719,143 @@ class _MushafScreenState extends State<MushafScreen> {
   Widget _topBar() {
     final p = _palette;
     final bookmarked = _bookmarkPage == _page;
-    return AnimatedSize(
+    return AnimatedSlide(
       duration: Duration(milliseconds: 220),
       curve: Curves.easeOut,
-      child: !_showChrome
-          ? SizedBox(width: double.infinity)
-          : SafeArea(
-              bottom: false,
-              child: SizedBox(
-                height: 52,
-                child: Row(
-                  children: [
-                    _iconBtn(Icons.arrow_back_ios_new_rounded, tr('رجوع'),
-                        () => Navigator.maybePop(context)),
-                    Expanded(
-                      child: _guideStep(
-                        _gIndex,
-                        tr('فهرس المصحف'),
-                        tr('اضغط على اسم السورة لفتح الفهرس: تنقّل بين السور والأجزاء والصفحات، أو ابحث عن سورة.'),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: _openIndex,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+      offset: _showChrome ? Offset.zero : Offset(0, -1.2),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.background.withOpacity(0.97),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(_dark ? 0.4 : 0.06),
+                blurRadius: 12,
+                offset: Offset(0, 2)),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 52,
+            child: Row(
+              children: [
+                _iconBtn(Icons.arrow_back_ios_new_rounded, tr('رجوع'),
+                    () => Navigator.maybePop(context)),
+                Expanded(
+                  child: _guideStep(
+                    _gIndex,
+                    tr('فهرس المصحف'),
+                    tr('اضغط على اسم السورة لفتح الفهرس: تنقّل بين السور والأجزاء والصفحات، أو ابحث عن سورة.'),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: _openIndex,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('${tr('سورة')} ${_surahLabel(_page)}',
-                                      style: TextStyle(
-                                          fontFamily: 'AppSans',
-                                          color: p.text,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16)),
-                                  Icon(Icons.expand_more_rounded,
-                                      color: p.muted, size: 20),
-                                ],
-                              ),
-                              Text(
-                                  '${tr('الجزء')} ${ar(_juz(_page))} • ${tr('صفحة')} ${ar(_page)}',
+                              Text('${tr('سورة')} ${_surahLabel(_page)}',
                                   style: TextStyle(
                                       fontFamily: 'AppSans',
-                                      color: p.muted,
-                                      fontSize: 11.5)),
+                                      color: p.text,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16)),
+                              Icon(Icons.expand_more_rounded,
+                                  color: p.muted, size: 20),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    _iconBtn(Icons.search_rounded, tr('البحث في القرآن'),
-                        _openSearch),
-                    _guideStep(
-                      _gBookmark,
-                      tr('العلامة'),
-                      tr('احفظ موضع قراءتك. لتحديد آية بعينها اضغط عليها ثم اختر «علامة»، وستفتح لك مظللة في المرة القادمة.'),
-                      _iconBtn(
-                          bookmarked
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          tr('العلامة'),
-                          _toggleBookmark,
-                          color: bookmarked ? p.accent : null),
-                      shape: const CircleBorder(),
-                    ),
-                    _guideStep(
-                      _gTheme,
-                      tr('الوضع الليلي'),
-                      tr('بدّل بين الوضع النهاري والليلي لراحة عينيك أثناء القراءة.'),
-                      _iconBtn(
-                          _dark
-                              ? Icons.light_mode_outlined
-                              : Icons.dark_mode_outlined,
-                          _dark ? tr('الوضع النهاري') : tr('الوضع الليلي'),
-                          _toggleDark),
-                      shape: const CircleBorder(),
-                    ),
-                    _guideStep(
-                      _gMenu,
-                      tr('المزيد'),
-                      tr('من هنا: الاستماع من أول الصفحة، اختيار القارئ، مصحف التجويد الملوّن، والتفسير، ودليل الاستخدام.'),
-                      shape: const CircleBorder(),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert_rounded, color: p.text),
-                        color: p.pill,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        onSelected: (v) {
-                          if (v == 'tajweed') _toggleTajweed();
-                          if (v == 'guide') _startGuide();
-                          if (v == 'index') _openIndex();
-                          if (v == 'search') _openSearch();
-                          if (v == 'reciter') _pickReciter();
-                          if (v == 'listen') {
-                            _playFrom(_firstSurah(_page), _firstVerse(_page));
-                          }
-                          if (v == 'tafsir') {
-                            showTafsirSheet(context,
-                                surah: _firstSurah(_page),
-                                verse: _firstVerse(_page),
-                                dark: _dark);
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          _menuItem('search', Icons.search_rounded,
-                            tr('البحث في القرآن')),
-                        _menuItem('index', Icons.list_alt_rounded,
-                              tr('فهرس السور والأجزاء')),
-                          _menuItem('listen', Icons.play_circle_outline_rounded,
-                              tr('استماع من أول الصفحة')),
-                          _menuItem('reciter', Icons.record_voice_over_outlined,
-                              tr('اختيار القارئ')),
-                          _menuItem(
-                              'tajweed',
-                              Icons.palette_outlined,
-                              _tajweed
-                                  ? tr('إخفاء ألوان التجويد')
-                                  : tr('مصحف التجويد')),
-                          _menuItem('tafsir', Icons.menu_book_rounded,
-                              tr('تفسير أول الصفحة')),
-                          _menuItem('guide', Icons.help_outline_rounded,
-                              tr('دليل استخدام المصحف')),
+                          Text(
+                              '${tr('الجزء')} ${ar(_juz(_page))} • ${tr('صفحة')} ${ar(_page)}',
+                              style: TextStyle(
+                                  fontFamily: 'AppSans',
+                                  color: p.muted,
+                                  fontSize: 11.5)),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                _iconBtn(
+                    Icons.search_rounded, tr('البحث في القرآن'), _openSearch),
+                _guideStep(
+                  _gBookmark,
+                  tr('العلامة'),
+                  tr('احفظ موضع قراءتك. لتحديد آية بعينها اضغط عليها ثم اختر «علامة»، وستفتح لك مظللة في المرة القادمة.'),
+                  _iconBtn(
+                      bookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      tr('العلامة'),
+                      _toggleBookmark,
+                      color: bookmarked ? p.accent : null),
+                  shape: const CircleBorder(),
+                ),
+                _guideStep(
+                  _gTheme,
+                  tr('الوضع الليلي'),
+                  tr('بدّل بين الوضع النهاري والليلي لراحة عينيك أثناء القراءة.'),
+                  _iconBtn(
+                      _dark
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      _dark ? tr('الوضع النهاري') : tr('الوضع الليلي'),
+                      _toggleDark),
+                  shape: const CircleBorder(),
+                ),
+                _guideStep(
+                  _gMenu,
+                  tr('المزيد'),
+                  tr('من هنا: الاستماع من أول الصفحة، اختيار القارئ، مصحف التجويد الملوّن، والتفسير، ودليل الاستخدام.'),
+                  shape: const CircleBorder(),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert_rounded, color: p.text),
+                    color: p.pill,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    onSelected: (v) {
+                      if (v == 'tajweed') _toggleTajweed();
+                      if (v == 'guide') _startGuide();
+                      if (v == 'index') _openIndex();
+                      if (v == 'search') _openSearch();
+                      if (v == 'reciter') _pickReciter();
+                      if (v == 'listen') {
+                        _playFrom(_firstSurah(_page), _firstVerse(_page));
+                      }
+                      if (v == 'tafsir') {
+                        showTafsirSheet(context,
+                            surah: _firstSurah(_page),
+                            verse: _firstVerse(_page),
+                            dark: _dark);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      _menuItem('search', Icons.search_rounded,
+                          tr('البحث في القرآن')),
+                      _menuItem('index', Icons.list_alt_rounded,
+                          tr('فهرس السور والأجزاء')),
+                      _menuItem('listen', Icons.play_circle_outline_rounded,
+                          tr('استماع من أول الصفحة')),
+                      _menuItem('reciter', Icons.record_voice_over_outlined,
+                          tr('اختيار القارئ')),
+                      _menuItem(
+                          'tajweed',
+                          Icons.palette_outlined,
+                          _tajweed
+                              ? tr('إخفاء ألوان التجويد')
+                              : tr('مصحف التجويد')),
+                      _menuItem('tafsir', Icons.menu_book_rounded,
+                          tr('تفسير أول الصفحة')),
+                      _menuItem('guide', Icons.help_outline_rounded,
+                          tr('دليل استخدام المصحف')),
+                    ],
+                  ),
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -878,7 +894,7 @@ class _MushafScreenState extends State<MushafScreen> {
     } else if (_showChrome) {
       child = _pagePill();
     } else {
-      child = SizedBox(height: 8, width: double.infinity);
+      child = _exitFocusButton();
     }
     return SafeArea(
       top: false,
@@ -920,6 +936,24 @@ class _MushafScreenState extends State<MushafScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              InkWell(
+                customBorder: CircleBorder(),
+                onTap: () => _setFocus(true),
+                child: Tooltip(
+                  message: tr('وضع القراءة'),
+                  child: Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(Icons.open_in_full_rounded,
+                        size: 18, color: p.accent),
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 18,
+                margin: EdgeInsets.symmetric(horizontal: 12),
+                color: p.muted.withOpacity(0.35),
+              ),
               Text(ar(_page),
                   style: TextStyle(
                       color: p.text,
@@ -939,6 +973,42 @@ class _MushafScreenState extends State<MushafScreen> {
                         color: p.text, fontSize: 15, fontFamily: 'Amiri')),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Reading mode: a small, quiet button to bring the bars back.
+  Widget _exitFocusButton() {
+    final p = _palette;
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6, top: 4),
+      child: Center(
+        child: Material(
+          color: p.pill.withOpacity(0.92),
+          shape:
+              StadiumBorder(side: BorderSide(color: p.muted.withOpacity(0.25))),
+          child: InkWell(
+            customBorder: StadiumBorder(),
+            onTap: () => _setFocus(false),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.close_fullscreen_rounded,
+                      size: 16, color: p.accent),
+                  SizedBox(width: 6),
+                  Text(ar(_page),
+                      style: TextStyle(
+                          color: p.text,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Amiri')),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1212,62 +1282,73 @@ class _MushafScreenState extends State<MushafScreen> {
             duration: Duration(milliseconds: 300),
             child: !_ready
                 ? SafeArea(key: ValueKey('l'), child: _loading())
-                : Column(
+                : Stack(
                     key: ValueKey('m'),
                     children: [
-                      _topBar(),
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                                child: GestureDetector(
-                              // Single tap only (no double-tap) so verse taps
-                              // inside the page react instantly.
-                              behavior: HitTestBehavior.translucent,
-                              onTap: _onBackgroundTap,
-                              child: Theme(
-                                  // The package colors the Basmala and surah
-                                  // header from the theme: follow the palette.
-                                  data: Theme.of(context).copyWith(
-                                    textTheme: Theme.of(context)
-                                        .textTheme
-                                        .apply(
-                                            bodyColor: p.text,
-                                            displayColor: p.text),
+                      // The page keeps one fixed size; bars float above it.
+                      // A constant strip at the bottom holds the page pill
+                      // (or the reading-mode button), so nothing covers text.
+                      Positioned.fill(
+                        bottom: 46,
+                        child: SafeArea(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                  child: GestureDetector(
+                                // Single tap only (no double-tap) so verse taps
+                                // inside the page react instantly.
+                                behavior: HitTestBehavior.translucent,
+                                onTap: _onBackgroundTap,
+                                child: Theme(
+                                    // The package colors the Basmala and surah
+                                    // header from the theme: follow the palette.
+                                    data: Theme.of(context).copyWith(
+                                      textTheme: Theme.of(context)
+                                          .textTheme
+                                          .apply(
+                                              bodyColor: p.text,
+                                              displayColor: p.text),
+                                    ),
+                                    child: qcf.QuranPageView(
+                                      pageController: _controller,
+                                      highlights: _highlights,
+                                      isDarkMode: _dark,
+                                      isTajweed: _tajweed,
+                                      pageBackgroundColor: p.background,
+                                      enableTwoPageLayout: true,
+                                      deferNewPages: false,
+                                      onPageChanged: _onPageChanged,
+                                      pageHeaderBuilder: _pageHeader,
+                                      onVerseTap: _select,
+                                      onLongPress: (s, v, _) => _select(s, v),
+                                    )),
+                              )),
+                              // Invisible target for the "tap a verse" step.
+                              Center(
+                                child: IgnorePointer(
+                                  child: _guideStep(
+                                    _gPage,
+                                    tr('اضغط على أي آية'),
+                                    tr('اضغط على الآية لتظليلها وحفظ موضع وقوفك، ويظهر لك شريط: التفسير، الاستماع بصوت القارئ، النسخ، المشاركة، والعلامة.'),
+                                    const SizedBox(width: 260, height: 110),
                                   ),
-                                  child: qcf.QuranPageView(
-                                    pageController: _controller,
-                                    highlights: _highlights,
-                                    isDarkMode: _dark,
-                                    isTajweed: _tajweed,
-                                    pageBackgroundColor: p.background,
-                                    enableTwoPageLayout: true,
-                                    deferNewPages: false,
-                                    onPageChanged: _onPageChanged,
-                                    pageHeaderBuilder: _pageHeader,
-                                    onVerseTap: _select,
-                                    onLongPress: (s, v, _) => _select(s, v),
-                                  )),
-                            )),
-                            // Invisible target for the "tap a verse" step.
-                            Center(
-                              child: IgnorePointer(
-                                child: _guideStep(
-                                  _gPage,
-                                  tr('اضغط على أي آية'),
-                                  tr('اضغط على الآية لتظليلها وحفظ موضع وقوفك، ويظهر لك شريط: التفسير، الاستماع بصوت القارئ، النسخ، المشاركة، والعلامة.'),
-                                  const SizedBox(width: 260, height: 110),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                      _guideStep(
-                        _gPill,
-                        tr('التنقل بين الصفحات'),
-                        tr('اسحب الصفحة يميناً أو يساراً للتنقل، واضغط على أي مكان فارغ لإخفاء الأشرطة أو إظهارها. هنا رقم الصفحة والحزب.'),
-                        _bottomArea(),
+                      Positioned(top: 0, left: 0, right: 0, child: _topBar()),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _guideStep(
+                          _gPill,
+                          tr('التنقل بين الصفحات'),
+                          tr('اسحب الصفحة يميناً أو يساراً للتنقل. هنا رقم الصفحة والحزب، وزر «وضع القراءة» لإخفاء الأشرطة وإظهار القرآن فقط.'),
+                          _bottomArea(),
+                        ),
                       ),
                     ],
                   ),

@@ -45,11 +45,14 @@ class RemoteContentService {
   Set<String> hiddenKeys = {};
   List<String> featuredKeys = const [];
 
+  /// Local id of a dashboard reciter -> 'reciter:<uuid>'.
+  static final Map<int, String> _remoteKeys = {};
+
   static String keyFor(ListenReciter r) => r.id == -1001
       ? 'builtin:hosni_omar'
       : r.id > 0
           ? 'mp3quran:${r.id}'
-          : 'remote:${r.id}';
+          : (_remoteKeys[r.id] ?? 'remote:${r.id}');
 
   bool isHidden(ListenReciter r) => hiddenKeys.contains(keyFor(r));
 
@@ -112,6 +115,7 @@ class RemoteContentService {
       final out = <ListenReciter>[];
       for (final r in jsonDecode(recitersJson) as List) {
         final id = -(2000 + out.length);
+        _remoteKeys[id] = 'reciter:${r['id']}';
         final label =
             '${r['riwaya'] ?? 'حفص عن عاصم'}${r['group_name'] != null ? ' (${r['group_name']})' : ''}';
         // Added by link: a folder with 001.mp3 ... 114.mp3.

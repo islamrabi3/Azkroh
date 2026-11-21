@@ -9,7 +9,7 @@ type ReciterRow = Reciter & {
   server_url: string | null;
   recitations: { count: number }[];
 };
-type Override = { key: string; name: string | null; hidden: boolean; featured: boolean };
+type Override = { key: string; name: string | null; hidden: boolean; featured: boolean; sort: number };
 type AppReciter = { key: string; name: string; sub: string };
 
 /** Reciters built into the app (besides the mp3quran library). */
@@ -18,7 +18,7 @@ const BUILTIN: AppReciter[] = [
 ];
 
 export default function Reciters({ notify }: { notify: Notify }) {
-  const [view, setView] = useState<"app" | "mine">("app");
+  const [view, setView] = useState<"order" | "app" | "mine">("order");
   return (
     <>
       <PageHeader
@@ -26,10 +26,13 @@ export default function Reciters({ notify }: { notify: Notify }) {
         subtitle="تحكم في قراء قسم الاستماع: أخفِ أو ميّز أي قارئ، أو أضف قراء جدداً. التغييرات تصل للتطبيق مباشرة دون تحديث."
       />
       <div className="seg" style={{ marginBottom: 16 }}>
+        <button className={view === "order" ? "on" : ""} onClick={() => setView("order")}>ترتيب المشهورين</button>
         <button className={view === "app" ? "on" : ""} onClick={() => setView("app")}>قراء التطبيق</button>
         <button className={view === "mine" ? "on" : ""} onClick={() => setView("mine")}>قراء أضفتهم</button>
       </div>
-      {view === "app" ? <AppReciters notify={notify} /> : <MyReciters notify={notify} />}
+      {view === "order" && <FeaturedOrder notify={notify} />}
+      {view === "app" && <AppReciters notify={notify} />}
+      {view === "mine" && <MyReciters notify={notify} />}
     </>
   );
 }
@@ -46,7 +49,7 @@ function AppReciters({ notify }: { notify: Notify }) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("reciter_overrides").select("key,name,hidden,featured");
+      const { data } = await supabase.from("reciter_overrides").select("key,name,hidden,featured,sort");
       setOv(Object.fromEntries(((data as Override[]) ?? []).map((o) => [o.key, o])));
       try {
         const res = await fetch("https://www.mp3quran.net/api/v3/reciters?language=ar");
@@ -80,8 +83,11 @@ function AppReciters({ notify }: { notify: Notify }) {
   }, [all, ov, q, filter]);
 
   async function set(r: AppReciter, patch: Partial<Override>) {
-    const cur = ov[r.key] ?? { key: r.key, name: r.name, hidden: false, featured: false };
+    const cur = ov[r.key] ?? { key: r.key, name: r.name, hidden: false, featured: false, sort: 0 };
     const next = { ...cur, ...patch, name: r.name };
+    if (patch.featured && !cur.featured) {
+      next.sort = Math.max(0, ...Object.values(ov).map((o) => o.sort ?? 0)) + 10;
+    }
     setOv({ ...ov, [r.key]: next });
     const { error } = await supabase.from("reciter_overrides").upsert(next, { onConflict: "key" });
     if (error) notify(error.message, false);
@@ -185,6 +191,13 @@ function MyReciters({ notify }: { notify: Notify }) {
       is_published: mode === "link",
     }).select("*, recitations(count)").single();
     if (error) return notify(error.message, false);
+    // New reciters go to the end of «قراء مشهورون».
+    const { data: last } = await supabase.from("reciter_overrides").select("sort")
+      .eq("featured", true).order("sort", { ascending: false }).limit(1);
+    await supabase.from("reciter_overrides").upsert({
+      key: `reciter:${(data as ReciterRow).id}`, name: name.trim(),
+      featured: true, hidden: false, sort: ((last?.[0]?.sort as number) ?? 0) + 10,
+    }, { onConflict: "key" });
     notify(mode === "link" ? "تمت إضافة القارئ ونشره في التطبيق" : "تمت الإضافة، ارفع التلاوات ثم انشره");
     setAdding(false);
     setName("");
@@ -206,6 +219,7 @@ function MyReciters({ notify }: { notify: Notify }) {
       if (files?.length) await supabase.storage.from("media").remove(files.map((f) => `reciters/${r.id}/${f.name}`));
     }
     await supabase.from("reciters").delete().eq("id", r.id);
+    await supabase.from("reciter_overrides").delete().eq("key", `reciter:${r.id}`);
     notify("تم الحذف");
     load();
   }
@@ -350,5 +364,78 @@ function Recitations({ reciter, notify, onClose }: { reciter: Reciter; notify: N
         </div>
       </div>
     </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Order of «قراء مشهورون» in the app
+// ---------------------------------------------------------------------------
+function FeaturedOrder({ notify }: { notify: Notify }) {
+  const [list, setList] = useState<Override[] | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from("reciter_overrides")
+      .select("key,name,hidden,featured,sort").eq("featured", true).eq("hidden", false)
+      .order("sort");
+    if (error) notify(error.message, false);
+    setList((data as Override[]) ?? []);
+  }, [notify]);
+  useEffect(() => { load(); }, [load]);
+
+  async function persist(next: Override[]) {
+    setList(next);
+    setSaving(true);
+    const rows = next.map((o, i) => ({ ...o, sort: (i + 1) * 10 }));
+    const { error } = await supabase.from("reciter_overrides").upsert(rows, { onConflict: "key" });
+    setSaving(false);
+    if (error) notify(error.message, false);
+    else notify("تم حفظ الترتيب");
+  }
+
+  function move(i: number, d: -1 | 1) {
+    if (!list) return;
+    const j = i + d;
+    if (j < 0 || j >= list.length) return;
+    const next = [...list];
+    [next[i], next[j]] = [next[j], next[i]];
+    persist(next);
+  }
+
+  async function unstar(o: Override) {
+    await supabase.from("reciter_overrides").update({ featured: false }).eq("key", o.key);
+    notify(`تمت إزالة ${o.name ?? ""} من المشهورين`);
+    load();
+  }
+
+  return (
+    <>
+      <div className="note" style={{ marginBottom: 14 }}>
+        <Icon name="sparkle" size={18} />
+        <div>
+          هذا ترتيب صف «قراء مشهورون» في قسم الاستماع: الأول هنا يظهر أولاً في التطبيق.
+          لإضافة قارئ للقائمة اضغط ★ تمييز بجانبه في «قراء التطبيق»، والقراء الذين تضيفهم يُضافون تلقائياً.
+        </div>
+      </div>
+      {list === null ? <Skeleton rows={4} /> : list.length === 0 ? (
+        <div className="card"><Empty icon="mic" title="لا يوجد قراء مميزون بعد"
+          text="ميّز قراء من تبويب «قراء التطبيق» ليظهروا هنا وترتبهم" /></div>
+      ) : (
+        <div className="rlist">
+          {list.map((o, i) => (
+            <div className="ritem" key={o.key}>
+              <div className="avatar" style={{ background: i < 3 ? "var(--gold)" : undefined, color: i < 3 ? "var(--emerald-900)" : undefined }}>{i + 1}</div>
+              <div className="info">
+                <b>{o.name ?? o.key}</b>
+                <span>{o.key.startsWith("reciter:") ? "أضفته من لوحة التحكم" : o.key.startsWith("builtin:") ? "مدمج في التطبيق" : "من مكتبة mp3quran"}</span>
+              </div>
+              <button className="btn sm ghost" disabled={i === 0 || saving} onClick={() => move(i, -1)} aria-label="لأعلى">▲</button>
+              <button className="btn sm ghost" disabled={i === list.length - 1 || saving} onClick={() => move(i, 1)} aria-label="لأسفل">▼</button>
+              <button className="btn sm danger" onClick={() => unstar(o)}>إزالة</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
