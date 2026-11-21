@@ -52,3 +52,8 @@ android/key.properties
 
 # Editor backups
 *~
+
+# Service account keys (never commit)
+azkroh-*.json
+*-service-account*.json
+*.p8
