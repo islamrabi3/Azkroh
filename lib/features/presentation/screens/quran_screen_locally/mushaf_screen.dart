@@ -651,8 +651,8 @@ class _MushafScreenState extends State<MushafScreen> {
   /// Search all ayat; jump to the tapped one and shade it.
   Future<void> _openSearch() async {
     _clearSelection();
-    final r = await Navigator.of(context).push<List<int>>(
-        MaterialPageRoute(builder: (_) => const QuranSearchScreen()));
+    final r = await Navigator.of(context)
+        .push<List<int>>(QuranSearchScreen.route(_palette));
     if (r == null || r.length < 2 || !mounted) return;
     final s = r[0], v = r[1];
     _jumpToPage(qcf.getPageNumber(s, v));

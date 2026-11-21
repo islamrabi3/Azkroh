@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/presentation/screens/game/quiz_screens.dart';
 import 'package:azkroh_app/features/presentation/screens/home_extras.dart';
 import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/features/presentation/screens/listen/listen_screen.dart';
@@ -189,17 +190,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       SizedBox(height: 22),
                       _continueReading(),
                       SizedBox(height: 12),
-                      const QuizEntryCard(),
                       const RuqyahLiveCard(),
                       const RatingCard(),
                       const RemoteContentStrip(),
                       if (_bmSurah != null && _bmVerse != null) ...[
                         SizedBox(height: 10),
                         _bookmarkTile(),
-                      ],
-                      if (showSupportCard) ...[
-                        const SizedBox(height: 14),
-                        const SupportCard(),
                       ],
                       SizedBox(height: 26),
                       _sectionTitle(tr('الأذكار'), Icons.auto_awesome_rounded,
@@ -574,6 +570,13 @@ class _HomePageScreenState extends State<HomePageScreen> {
           () => navigateTo(context, RadioScreen())),
       _Action(tr('الاستماع'), Icons.headphones_rounded, Color(0xFF2E7D6B),
           () => navigateTo(context, const ListenScreen())),
+      _Action(tr('المسابقة'), Icons.emoji_events_rounded, Color(0xFFC9A227),
+          () => navigateTo(context, const QuizHomeScreen())),
+      _Action(tr('التقويم'), Icons.calendar_month_rounded, Color(0xFF3B4C8C),
+          () => navigateTo(context, EnhancedHijriScreen())),
+      if (showSupportCard)
+        _Action(tr('ادعمنا'), Icons.volunteer_activism_rounded,
+            Color(0xFFC2185B), () => showSupportSheet(context)),
       _Action(tr('الإعدادات'), Icons.tune_rounded, Color(0xFF55606B),
           () async {
         await navigateTo(context, NotificationSettingsScreen());
