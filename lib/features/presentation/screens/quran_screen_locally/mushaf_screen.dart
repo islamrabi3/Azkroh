@@ -115,7 +115,7 @@ class _MushafScreenState extends State<MushafScreen> {
 
   // First-run guide (showcaseview).
   static const _guideScope = 'mushaf_guide';
-  static const _prefGuideSeen = 'mushaf_guide_seen_v1';
+  static const _prefGuideSeen = 'mushaf_guide_seen_v2';
   final _gPage = GlobalKey();
   final _gIndex = GlobalKey();
   final _gBookmark = GlobalKey();
@@ -415,8 +415,14 @@ class _MushafScreenState extends State<MushafScreen> {
         _selVerse = null;
       });
 
+  /// One tap anywhere on the page: closes a selected ayah's bar, otherwise
+  /// shows / hides the header and page pill. Long press selects an ayah.
   void _onBackgroundTap() {
-    if (_selSurah != null) _clearSelection();
+    if (_selSurah != null) {
+      _clearSelection();
+    } else {
+      _setFocus(_showChrome);
+    }
   }
 
   /// Reading mode: hides the top bar and page pill so only the Quran shows.
@@ -1319,7 +1325,7 @@ class _MushafScreenState extends State<MushafScreen> {
                                       deferNewPages: false,
                                       onPageChanged: _onPageChanged,
                                       pageHeaderBuilder: _pageHeader,
-                                      onVerseTap: _select,
+                                      onVerseTap: (s, v) => _onBackgroundTap(),
                                       onLongPress: (s, v, _) => _select(s, v),
                                     )),
                               )),
@@ -1328,8 +1334,8 @@ class _MushafScreenState extends State<MushafScreen> {
                                 child: IgnorePointer(
                                   child: _guideStep(
                                     _gPage,
-                                    tr('اضغط على أي آية'),
-                                    tr('اضغط على الآية لتظليلها وحفظ موضع وقوفك، ويظهر لك شريط: التفسير، الاستماع بصوت القارئ، النسخ، المشاركة، والعلامة.'),
+                                    tr('اضغط مطولاً على أي آية'),
+                                    tr('اضغط مطولاً على الآية لتظليلها وحفظ موضع وقوفك، ويظهر لك شريط: التفسير، الاستماع، النسخ، المشاركة، والعلامة. وضغطة واحدة على الصفحة تُظهر الأشرطة أو تخفيها.'),
                                     const SizedBox(width: 260, height: 110),
                                   ),
                                 ),
@@ -1346,7 +1352,7 @@ class _MushafScreenState extends State<MushafScreen> {
                         child: _guideStep(
                           _gPill,
                           tr('التنقل بين الصفحات'),
-                          tr('اسحب الصفحة يميناً أو يساراً للتنقل. هنا رقم الصفحة والحزب، وزر «وضع القراءة» لإخفاء الأشرطة وإظهار القرآن فقط.'),
+                          tr('اسحب الصفحة يميناً أو يساراً للتنقل. اضغط على الصفحة مرة لإخفاء الأشرطة ومرة لإظهارها، أو استخدم زر «وضع القراءة» هنا.'),
                           _bottomArea(),
                         ),
                       ),
