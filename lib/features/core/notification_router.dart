@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/presentation/screens/adhan_screen.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/enhanced_hijri_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/paryer_time_screen.dart';
@@ -100,7 +101,14 @@ class NotificationRouter {
         return;
     }
 
-    // Adhan, pre-prayer reminder, refresh reminder, Jumu'ah, tests.
+    // The adhan itself: full-screen adhan page (stop / mute).
+    if (payload.startsWith('prayer_') && payload != 'prayer_reminder') {
+      final name = payload.substring('prayer_'.length);
+      _push(AdhanScreen(prayerName: name == 'test' ? '' : name));
+      return;
+    }
+
+    // Pre-prayer reminder, refresh reminder, Jumu'ah.
     if (payload.startsWith('prayer') || payload == 'refresh') {
       _push(PrayerScreen());
     }

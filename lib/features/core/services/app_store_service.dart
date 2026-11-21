@@ -37,7 +37,7 @@ class AppStoreService {
       const day = 24 * 60 * 60 * 1000;
       final usedDays = (now - first) / day;
       final sinceAsk = (now - lastAsk) / day;
-      if (launches >= 5 && usedDays >= 3 && sinceAsk >= 60) {
+      if (launches >= 3 && usedDays >= 1 && sinceAsk >= 30) {
         if (await _review.isAvailable()) {
           await prefs.setInt('review_asked_at', now);
           await Future.delayed(const Duration(seconds: 3));
@@ -47,6 +47,41 @@ class AppStoreService {
     } catch (e) {
       debugPrint('review: $e');
     }
+  }
+
+  /// Whether the home "rate the app" card should show: from the 2nd launch,
+  /// until the user rates, reappearing a few days after "later".
+  final ValueNotifier<bool> showRatingCard = ValueNotifier(false);
+
+  Future<void> refreshRatingCard() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rated = prefs.getBool('user_rated') ?? false;
+      final launches = prefs.getInt('app_launches') ?? 0;
+      final snooze = prefs.getInt('rating_snooze_until') ?? 0;
+      showRatingCard.value = !rated &&
+          launches >= 2 &&
+          DateTime.now().millisecondsSinceEpoch >= snooze;
+    } catch (_) {}
+  }
+
+  /// "Later": hide the card for 3 days.
+  Future<void> snoozeRatingCard() async {
+    showRatingCard.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+        'rating_snooze_until',
+        DateTime.now()
+            .add(const Duration(days: 3))
+            .millisecondsSinceEpoch);
+  }
+
+  /// "Rate now" from the card: open the store and stop asking.
+  Future<void> rateFromCard() async {
+    showRatingCard.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('user_rated', true);
+    await openRating();
   }
 
   /// "قيّم التطبيق" from settings.

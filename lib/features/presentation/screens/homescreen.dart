@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/presentation/screens/home_extras.dart';
 import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/features/presentation/screens/listen/listen_screen.dart';
 import 'package:azkroh_app/features/core/widgets/app_loader.dart';
@@ -74,7 +75,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
       if (mounted) setState(() => _now = DateTime.now());
     });
     _loadPrefs();
-    AppStoreService().registerLaunchAndMaybeAskReview();
+    AppStoreService()
+        .registerLaunchAndMaybeAskReview()
+        .then((_) => AppStoreService().refreshRatingCard());
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       NotificationRouter.homeReady();
       final granted = await NotificationService().requestPermissions();
@@ -185,6 +188,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       _quickActions(),
                       SizedBox(height: 22),
                       _continueReading(),
+                      SizedBox(height: 12),
+                      const QuizEntryCard(),
+                      const RuqyahLiveCard(),
+                      const RatingCard(),
+                      const RemoteContentStrip(),
                       if (_bmSurah != null && _bmVerse != null) ...[
                         SizedBox(height: 10),
                         _bookmarkTile(),

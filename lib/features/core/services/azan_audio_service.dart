@@ -35,10 +35,20 @@ class AzanAudioService {
       'desc': 'أذان المسجد النبوي الشريف',
       'sound': 'azan_madinah',
     },
+    // Classic Egyptian adhan (archival recording). No Fajr recording of his
+    // with «الصلاة خير من النوم» exists, so Fajr uses the Makkah Fajr adhan.
+    'refaat': {
+      'name': 'الشيخ محمد رفعت',
+      'desc': 'قيثارة السماء، الأذان المصري الأصيل (الفجر بأذان الحرم المكي)',
+      'sound': 'azan_refaat',
+      'fajr': 'azan_makkah_fajr',
+    },
   };
 
   /// Resource base name for [reciter] + prayer type, e.g. azan_makkah_fajr.
   static String soundName(String reciter, bool isFajr) {
+    final fajrOverride = azanReciters[reciter]?['fajr'];
+    if (isFajr && fajrOverride != null) return fajrOverride;
     final base = azanReciters[reciter]?['sound'] ?? 'azan';
     return '${base}_${isFajr ? 'fajr' : 'regular'}';
   }

@@ -81,6 +81,7 @@ dependencies:
   upgrader: ^11.0.0
   in_app_update: ^4.2.5
   showcaseview: ^5.1.0
+  supabase_flutter: ^2.14.2
   
 
 dev_dependencies:

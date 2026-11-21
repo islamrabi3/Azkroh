@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/presentation/screens/quran_screen_locally/quran_search_screen.dart';
 import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
@@ -647,6 +648,24 @@ class _MushafScreenState extends State<MushafScreen> {
   // ---------------------------------------------------------------------------
   // Index (surah / juz / page)
   // ---------------------------------------------------------------------------
+  /// Search all ayat; jump to the tapped one and shade it.
+  Future<void> _openSearch() async {
+    _clearSelection();
+    final r = await Navigator.of(context).push<List<int>>(
+        MaterialPageRoute(builder: (_) => const QuranSearchScreen()));
+    if (r == null || r.length < 2 || !mounted) return;
+    final s = r[0], v = r[1];
+    _jumpToPage(qcf.getPageNumber(s, v));
+    setState(() {
+      _markSurah = s;
+      _markVerse = v;
+      _selSurah = null;
+      _selVerse = null;
+      _showChrome = true;
+    });
+    _rememberAyah(s, v);
+  }
+
   void _openIndex() {
     _clearSelection();
     showModalBottomSheet(
@@ -742,6 +761,8 @@ class _MushafScreenState extends State<MushafScreen> {
                         ),
                       ),
                     ),
+                    _iconBtn(Icons.search_rounded, tr('البحث في القرآن'),
+                        _openSearch),
                     _guideStep(
                       _gBookmark,
                       tr('العلامة'),
@@ -781,6 +802,7 @@ class _MushafScreenState extends State<MushafScreen> {
                           if (v == 'tajweed') _toggleTajweed();
                           if (v == 'guide') _startGuide();
                           if (v == 'index') _openIndex();
+                          if (v == 'search') _openSearch();
                           if (v == 'reciter') _pickReciter();
                           if (v == 'listen') {
                             _playFrom(_firstSurah(_page), _firstVerse(_page));
@@ -793,7 +815,9 @@ class _MushafScreenState extends State<MushafScreen> {
                           }
                         },
                         itemBuilder: (_) => [
-                          _menuItem('index', Icons.list_alt_rounded,
+                          _menuItem('search', Icons.search_rounded,
+                            tr('البحث في القرآن')),
+                        _menuItem('index', Icons.list_alt_rounded,
                               tr('فهرس السور والأجزاء')),
                           _menuItem('listen', Icons.play_circle_outline_rounded,
                               tr('استماع من أول الصفحة')),
@@ -1201,19 +1225,29 @@ class _MushafScreenState extends State<MushafScreen> {
                               // inside the page react instantly.
                               behavior: HitTestBehavior.translucent,
                               onTap: _onBackgroundTap,
-                              child: qcf.QuranPageView(
-                                pageController: _controller,
-                                highlights: _highlights,
-                                isDarkMode: _dark,
-                                isTajweed: _tajweed,
-                                pageBackgroundColor: p.background,
-                                enableTwoPageLayout: true,
-                                deferNewPages: false,
-                                onPageChanged: _onPageChanged,
-                                pageHeaderBuilder: _pageHeader,
-                                onVerseTap: _select,
-                                onLongPress: (s, v, _) => _select(s, v),
-                              ),
+                              child: Theme(
+                                  // The package colors the Basmala and surah
+                                  // header from the theme: follow the palette.
+                                  data: Theme.of(context).copyWith(
+                                    textTheme: Theme.of(context)
+                                        .textTheme
+                                        .apply(
+                                            bodyColor: p.text,
+                                            displayColor: p.text),
+                                  ),
+                                  child: qcf.QuranPageView(
+                                    pageController: _controller,
+                                    highlights: _highlights,
+                                    isDarkMode: _dark,
+                                    isTajweed: _tajweed,
+                                    pageBackgroundColor: p.background,
+                                    enableTwoPageLayout: true,
+                                    deferNewPages: false,
+                                    onPageChanged: _onPageChanged,
+                                    pageHeaderBuilder: _pageHeader,
+                                    onVerseTap: _select,
+                                    onLongPress: (s, v, _) => _select(s, v),
+                                  )),
                             )),
                             // Invisible target for the "tap a verse" step.
                             Center(

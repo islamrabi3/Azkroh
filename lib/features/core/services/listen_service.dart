@@ -1,3 +1,4 @@
+import 'remote_content_service.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -115,6 +116,16 @@ class ListenService {
 
   List<ListenReciter>? _reciters;
 
+  /// Reciters from Al-Hawamdiya not on mp3quran.net, served from other
+  /// sources. Shown first in their own section.
+  static final List<ListenReciter> hawamdiya = [
+    ListenReciter(-1001, 'محمد حسني عمر', [
+      Moshaf(-1001, 'حفص عن عاصم - مرتل (الحوامدية)',
+          'https://media.way2quran.com/mohamed-hosni-omar/hafs-an-asim/',
+          List<int>.generate(114, (i) => i + 1)),
+    ]),
+  ];
+
   // ---------------------------------------------------------------------------
   // Catalogue
   // ---------------------------------------------------------------------------
@@ -137,7 +148,11 @@ class ListenService {
       } catch (_) {}
     }
     if (body == null) throw Exception('offline');
-    _reciters = await compute(_parse, body);
+    _reciters = [
+      ...hawamdiya,
+      ...RemoteContentService.instance.reciters.value,
+      ...await compute(_parse, body),
+    ];
     return _reciters!;
   }
 

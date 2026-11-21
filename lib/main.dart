@@ -1,3 +1,6 @@
+import 'package:azkroh_app/features/core/services/remote_content_service.dart';
+import 'package:azkroh_app/features/core/services/backend.dart';
+import 'package:azkroh_app/features/core/widgets/now_playing_bubble.dart';
 import 'package:azkroh_app/features/core/notification_router.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/cacheHelper.dart';
@@ -58,6 +61,10 @@ void main() async {
 
   // Lock-screen / notification media controls for radio and Listen.
   await MediaHandler.init();
+
+  // Backend (quiz game, dashboard content). Offline-safe.
+  await Backend.init();
+  RemoteContentService.instance.load();
 
   runApp(const MyApp());
 }
@@ -165,7 +172,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle.light
                     .copyWith(statusBarColor: Colors.transparent),
-                child: child!,
+                child: Stack(
+                  children: [
+                    child!,
+                    // App-wide "now playing" bubble (radio / recitations).
+                    const NowPlayingBubble(),
+                  ],
+                ),
               ),
             ),
           ),

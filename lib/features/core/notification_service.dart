@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:azkroh_app/features/core/notification_background_handler.dart';
 import 'package:azkroh_app/features/core/services/azan_audio_service.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:ui' show Color;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -51,7 +52,7 @@ class NotificationService {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_stat_media');
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
@@ -203,6 +204,19 @@ class NotificationService {
   /// Stop Azan if playing
   Future<void> stopAzan() async {
     try {
+      // Android: the adhan is the notification sound -> cancel it.
+      if (Platform.isAndroid) {
+        final active = await _flutterLocalNotificationsPlugin
+                .resolvePlatformSpecificImplementation<
+                    AndroidFlutterLocalNotificationsPlugin>()
+                ?.getActiveNotifications() ??
+            const <ActiveNotification>[];
+        for (final n in active) {
+          if ((n.payload ?? '').startsWith('prayer_') && n.id != null) {
+            await _flutterLocalNotificationsPlugin.cancel(n.id!);
+          }
+        }
+      }
       await AzanAudioService().stopAzan();
     } catch (e) {
       debugPrint('🔊 Error stopping Azan: $e');
@@ -250,7 +264,9 @@ class NotificationService {
         channelName,
         importance: withAzan ? Importance.max : Importance.high,
         priority: Priority.max,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_stat_media',
+        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
+        color: const Color(0xFF0F5C4A),
         playSound: true,
         sound: withAzan ? RawResourceAndroidNotificationSound(sound) : null,
         audioAttributesUsage: withAzan
@@ -265,6 +281,18 @@ class NotificationService {
         ),
         ticker: title,
         autoCancel: true,
+        // Wake the locked screen with the full-screen adhan page.
+        fullScreenIntent: withAzan,
+        actions: withAzan
+            ? <AndroidNotificationAction>[
+                AndroidNotificationAction(
+                  'stop_azan',
+                  tr('إيقاف الأذان'),
+                  cancelNotification: true,
+                  showsUserInterface: false,
+                ),
+              ]
+            : null,
       ),
       iOS: DarwinNotificationDetails(
         presentAlert: true,
@@ -336,7 +364,9 @@ class NotificationService {
         'الأذكار والتذكيرات',
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_stat_media',
+        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
+        color: const Color(0xFF0F5C4A),
         enableVibration: true,
         playSound: true,
         autoCancel: true,

@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/core/widgets/now_playing_bubble.dart';
 import 'dart:math' as math;
 
 import 'package:azkroh_app/features/core/appstyle.dart';
@@ -17,7 +18,8 @@ class RadioScreen extends StatefulWidget {
   State<RadioScreen> createState() => _RadioScreenState();
 }
 
-class _RadioScreenState extends State<RadioScreen> {
+class _RadioScreenState extends State<RadioScreen>
+    with SuppressNowPlayingBubble {
   final RadioService _radio = RadioService();
   final ScrollController _scroll = ScrollController();
   String _query = '';

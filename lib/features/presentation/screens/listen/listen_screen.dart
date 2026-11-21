@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/services/remote_content_service.dart';
+import 'package:azkroh_app/features/core/widgets/now_playing_bubble.dart';
 import 'package:azkroh_app/features/core/appstyle.dart';
 import 'package:azkroh_app/features/core/services/listen_service.dart';
 import 'package:azkroh_app/features/core/widgets/app_loader.dart';
@@ -71,7 +73,8 @@ class ListenScreen extends StatefulWidget {
   State<ListenScreen> createState() => _ListenScreenState();
 }
 
-class _ListenScreenState extends State<ListenScreen> {
+class _ListenScreenState extends State<ListenScreen>
+    with SuppressNowPlayingBubble {
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -237,6 +240,11 @@ class _RecitersTabState extends State<_RecitersTab>
             .toList()
           ..sort();
         final browsing = _q.trim().isEmpty && _letter == null;
+        // Hawamdiya reciters: built-in + uploaded from the dashboard.
+        final local = [
+          ...ListenService.hawamdiya,
+          ...RemoteContentService.instance.reciters.value,
+        ];
 
         return CustomScrollView(
           physics: const ClampingScrollPhysics(),
@@ -251,6 +259,24 @@ class _RecitersTabState extends State<_RecitersTab>
                 ),
               ),
             ),
+            if (browsing) ...[
+              _sectionTitle(tr('قراء الحوامدية')),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _ReciterTile(
+                        reciter: local[i],
+                        onTap: () => _open(local[i]),
+                      ),
+                    ),
+                    childCount: local.length,
+                  ),
+                ),
+              ),
+            ],
             if (browsing && famous.isNotEmpty) ...[
               _sectionTitle(tr('قراء مشهورون')),
               SliverToBoxAdapter(
@@ -436,7 +462,8 @@ class ReciterSurahsScreen extends StatefulWidget {
   State<ReciterSurahsScreen> createState() => _ReciterSurahsScreenState();
 }
 
-class _ReciterSurahsScreenState extends State<ReciterSurahsScreen> {
+class _ReciterSurahsScreenState extends State<ReciterSurahsScreen>
+    with SuppressNowPlayingBubble {
   final _service = ListenService();
   int _moshaf = 0;
   final Set<String> _downloaded = {};
