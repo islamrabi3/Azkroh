@@ -127,11 +127,21 @@ class RadioService {
   void _parse(String body) {
     try {
       final list = (jsonDecode(body) as Map)['radios'] as List;
+      // mp3quran gives every station of a reciter the same name (murattal,
+      // mujawwad, other riwayat), so tell them apart by the stream slug.
+      final counts = <String, int>{};
+      for (final r in list) {
+        final n = (r['name'] as String).trim();
+        counts[n] = (counts[n] ?? 0) + 1;
+      }
       final stations = <RadioStation>[];
       for (final r in list) {
         final url = (r['url'] as String).trim();
-        final name = (r['name'] as String).trim();
+        var name = (r['name'] as String).trim();
         if (url.isEmpty) continue;
+        if ((counts[name] ?? 0) > 1) {
+          name = '$name - ${_variantLabel(url.split('/').last)}';
+        }
         final alt = url.contains('backup.qurango.net')
             ? url.replaceFirst('backup.qurango.net', 'qurango.net')
             : url.replaceFirst('qurango.net', 'backup.qurango.net');
@@ -139,6 +149,30 @@ class RadioService {
       }
       reciterStations.value = stations;
     } catch (_) {}
+  }
+
+  /// Riwaya / style of a station, from its stream slug. Checked against the
+  /// riwayat mp3quran lists for each of these reciters.
+  static String _variantLabel(String slug) {
+    const labels = [
+      ['aldori_an_abi_amr', 'الدوري عن أبي عمرو'],
+      ['aldorai', 'الدوري عن الكسائي'],
+      ['albizi', 'البزي وقنبل عن ابن كثير'],
+      ['ibn_thakwan', 'ابن ذكوان عن ابن عامر'],
+      ['alasbahani', 'ورش عن نافع'],
+      ['warsh', 'ورش عن نافع'],
+      ['khalaf', 'خلف عن حمزة'],
+      ['assosi', 'السوسي عن أبي عمرو'],
+      ['mojawwad', 'مجوّد'],
+      ['english_bsfr', 'عبدالله بصفر'],
+      ['_basit', 'عبدالباسط عبدالصمد'],
+      ['urdu_minsh', 'محمد صديق المنشاوي'],
+      ['urdu_sds_shur', 'السديس والشريم'],
+    ];
+    for (final l in labels) {
+      if (slug.contains(l[0])) return l[1];
+    }
+    return 'مرتّل';
   }
 
   Future<void> toggleFavorite(RadioStation s) async {
