@@ -893,12 +893,12 @@ class _MushafScreenState extends State<MushafScreen> {
 
   Widget _bottomArea() {
     final Widget child;
-    if (_rec != null) {
-      child = _playerBar();
-    } else if (_selVerse != null) {
+    if (_selVerse != null) {
       child = _actionBar(_selSurah!, _selVerse!);
     } else if (_showChrome) {
-      child = _pagePill();
+      // The player bar follows the bars: a tap on the page hides it so no
+      // ayah stays covered; the recitation keeps playing.
+      child = _rec != null ? _playerBar() : _pagePill();
     } else {
       child = _exitFocusButton();
     }
@@ -914,10 +914,10 @@ class _MushafScreenState extends State<MushafScreen> {
           ),
         ),
         child: KeyedSubtree(
-          key: ValueKey(_rec != null
-              ? 'play'
-              : _selVerse != null
-                  ? 'sel$_selSurah:$_selVerse'
+          key: ValueKey(_selVerse != null
+              ? 'sel$_selSurah:$_selVerse'
+              : _showChrome && _rec != null
+                  ? 'play'
                   : 'pill$_showChrome'),
           child: child,
         ),
