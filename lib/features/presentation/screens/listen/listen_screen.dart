@@ -196,18 +196,18 @@ class _RecitersTabState extends State<_RecitersTab>
   List<ListenReciter> _famousOf(List<ListenReciter> all) {
     if (_featured != null) return _featured!;
     final out = <ListenReciter>[];
-    // Reciters starred in the dashboard come first, then reciters added
-    // outside the mp3quran library (built-in and from the dashboard).
-    for (final k in RemoteContentService.instance.featuredKeys) {
-      for (final r in all) {
-        if (RemoteContentService.keyFor(r) == k && !out.contains(r)) {
-          out.add(r);
-          break;
+    // The dashboard decides this row: starred reciters, in its order.
+    final starred = RemoteContentService.instance.featuredKeys;
+    if (starred.isNotEmpty) {
+      for (final k in starred) {
+        for (final r in all) {
+          if (RemoteContentService.keyFor(r) == k && !out.contains(r)) {
+            out.add(r);
+            break;
+          }
         }
       }
-    }
-    for (final r in all) {
-      if (r.id < 0 && !out.contains(r)) out.add(r);
+      return _featured = out;
     }
     for (final f in _famous) {
       for (final r in all) {

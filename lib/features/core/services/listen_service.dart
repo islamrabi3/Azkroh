@@ -153,7 +153,8 @@ class ListenService {
       ...hawamdiya,
       ...remote.reciters.value,
       ...await compute(_parse, body),
-    ].where((r) => !remote.isHidden(r)).toList();
+    ].where((r) => !remote.isHidden(r)).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     return _reciters!;
   }
 

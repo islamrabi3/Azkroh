@@ -1,3 +1,4 @@
+import '../../../l10n/app_locale.dart';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -75,7 +76,7 @@ class RemoteContentService {
       final rec = await c
           .from('reciters')
           .select(
-              'id,name,riwaya,group_name,sort,server_url,surahs,recitations(surah,url)')
+              'id,name,name_en,riwaya,group_name,sort,server_url,surahs,recitations(surah,url)')
           .eq('is_published', true)
           .order('sort');
       final ov = await c
@@ -116,6 +117,10 @@ class RemoteContentService {
       for (final r in jsonDecode(recitersJson) as List) {
         final id = -(2000 + out.length);
         _remoteKeys[id] = 'reciter:${r['id']}';
+        final en = (r['name_en'] as String?)?.trim() ?? '';
+        final displayName = !AppLocale.isRtl && en.isNotEmpty
+            ? en
+            : (r['name'] as String).trim();
         final label =
             '${r['riwaya'] ?? 'حفص عن عاصم'}${r['group_name'] != null ? ' (${r['group_name']})' : ''}';
         // Added by link: a folder with 001.mp3 ... 114.mp3.
@@ -124,7 +129,7 @@ class RemoteContentService {
           final surahs = ((r['surahs'] as List?) ?? const [])
               .map((e) => (e as num).toInt())
               .toList();
-          out.add(ListenReciter(id, (r['name'] as String).trim(), [
+          out.add(ListenReciter(id, displayName, [
             Moshaf(id, label, link.endsWith('/') ? link : '$link/',
                 surahs.isEmpty ? List<int>.generate(114, (i) => i + 1) : surahs),
           ]));
@@ -139,7 +144,7 @@ class RemoteContentService {
         // as the Moshaf "server".
         final first = recs.first['url'] as String;
         final server = first.substring(0, first.lastIndexOf('/') + 1);
-        out.add(ListenReciter(id, (r['name'] as String).trim(), [
+        out.add(ListenReciter(id, displayName, [
           Moshaf(id, label, server,
               recs.map((e) => (e['surah'] as num).toInt()).toList()),
         ]));

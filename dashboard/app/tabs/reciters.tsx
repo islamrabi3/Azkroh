@@ -7,6 +7,7 @@ import type { Notify } from "../page";
 
 type ReciterRow = Reciter & {
   server_url: string | null;
+  name_en: string | null;
   recitations: { count: number }[];
 };
 type Override = { key: string; name: string | null; hidden: boolean; featured: boolean; sort: number };
@@ -61,7 +62,10 @@ function AppReciters({ notify }: { notify: Notify }) {
             sub: r.moshaf.length === 1 ? r.moshaf[0].name : `${r.moshaf.length} روايات`,
           }))
           .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-        setAll([...BUILTIN, ...list]);
+        const { data: mine } = await supabase.from("reciters").select("id,name,riwaya");
+        const added: AppReciter[] = ((mine as { id: string; name: string; riwaya: string }[]) ?? [])
+          .map((r) => ({ key: `reciter:${r.id}`, name: r.name, sub: `${r.riwaya} • أضفته من لوحة التحكم` }));
+        setAll([...BUILTIN, ...added, ...list].sort((x, y) => x.name.localeCompare(y.name, "ar")));
       } catch {
         setAll(BUILTIN);
         notify("تعذر تحميل قائمة القراء من mp3quran", false);
@@ -161,6 +165,8 @@ function MyReciters({ notify }: { notify: Notify }) {
   const [rows, setRows] = useState<ReciterRow[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
+  const [editing, setEditing] = useState<ReciterRow | null>(null);
   const [riwaya, setRiwaya] = useState("حفص عن عاصم - مرتل");
   const [mode, setMode] = useState<"upload" | "link">("upload");
   const [link, setLink] = useState("");
@@ -222,22 +228,16 @@ function MyReciters({ notify }: { notify: Notify }) {
       }
     }
     const { data, error } = await supabase.from("reciters").insert({
-      name: name.trim(), riwaya: riwaya.trim() || "حفص عن عاصم",
+      name: name.trim(), name_en: nameEn.trim() || null, riwaya: riwaya.trim() || "حفص عن عاصم",
       server_url: mode === "link" ? url : null,
       surahs: mode === "link" ? surahs : null,
       is_published: mode === "link",
     }).select("*, recitations(count)").single();
     if (error) return notify(error.message, false);
-    // New reciters go to the end of «قراء مشهورون».
-    const { data: last } = await supabase.from("reciter_overrides").select("sort")
-      .eq("featured", true).order("sort", { ascending: false }).limit(1);
-    await supabase.from("reciter_overrides").upsert({
-      key: `reciter:${(data as ReciterRow).id}`, name: name.trim(),
-      featured: true, hidden: false, sort: ((last?.[0]?.sort as number) ?? 0) + 10,
-    }, { onConflict: "key" });
     notify(mode === "link" ? "تمت إضافة القارئ ونشره في التطبيق" : "تمت الإضافة، ارفع التلاوات ثم انشره");
     setAdding(false);
     setName("");
+    setNameEn("");
     setLink("");
     load();
     if (mode === "upload") setOpen(data as ReciterRow);
@@ -265,7 +265,7 @@ function MyReciters({ notify }: { notify: Notify }) {
     <>
       <div className="row" style={{ marginBottom: 14 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>
-          القراء الذين تضيفهم يظهرون في أول صف «قراء مشهورون» في التطبيق.
+          القراء الذين تضيفهم يظهرون في «كل القراء» بالترتيب الأبجدي. لإظهارهم في «قراء مشهورون» ميّزهم بـ ★ من «قراء التطبيق».
         </span>
         <span className="spacer" />
         <button className="btn gold" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> إضافة قارئ</button>
@@ -295,6 +295,7 @@ function MyReciters({ notify }: { notify: Notify }) {
                 <span className={`badge-s ${r.is_published ? "" : "off"}`}>{r.is_published ? "منشور" : "مخفي"}</span>
                 {!r.server_url && <button className="btn sm" onClick={() => setOpen(r)}><Icon name="upload" size={16} /> التلاوات</button>}
                 <button className="btn sm ghost" onClick={() => toggle(r)}><Icon name={r.is_published ? "eyeoff" : "eye"} size={16} /> {r.is_published ? "إخفاء" : "نشر"}</button>
+                <button className="btn sm ghost" onClick={() => setEditing({ ...r })}><Icon name="edit" size={16} /></button>
                 <button className="btn sm danger" onClick={() => remove(r)}><Icon name="trash" size={16} /> حذف</button>
               </div>
             );
@@ -306,7 +307,10 @@ function MyReciters({ notify }: { notify: Notify }) {
         <Modal title="إضافة قارئ" onClose={() => setAdding(false)}
           footer={<><button className="btn ghost" onClick={() => setAdding(false)}>إلغاء</button><button className="btn" disabled={!!scan} onClick={add}>{scan ? "جاري الفحص..." : "إضافة"}</button></>}>
           <div className="stack">
-            <Field label="اسم القارئ"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: الشيخ محمد جمعة" /></Field>
+            <div className="grid-2">
+              <Field label="اسم القارئ (عربي)"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: محمد جمعة" /></Field>
+              <Field label="الاسم بالإنجليزي" hint="يظهر في نسخ التطبيق غير العربية"><input dir="ltr" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Mohamed Gomaa" /></Field>
+            </div>
             <Field label="الرواية / نوع التلاوة"><input value={riwaya} onChange={(e) => setRiwaya(e.target.value)} /></Field>
             <div className="seg">
               <button className={mode === "upload" ? "on" : ""} onClick={() => setMode("upload")}>رفع ملفات MP3</button>
@@ -327,6 +331,24 @@ function MyReciters({ notify }: { notify: Notify }) {
       )}
 
       {open && <Recitations reciter={open} notify={notify} onClose={() => { setOpen(null); load(); }} />}
+
+      {editing && (
+        <Modal title="تعديل القارئ" onClose={() => setEditing(null)}
+          footer={<><button className="btn ghost" onClick={() => setEditing(null)}>إلغاء</button>
+            <button className="btn" onClick={async () => {
+              const { error } = await supabase.from("reciters").update({
+                name: editing.name.trim(), name_en: editing.name_en?.trim() || null, riwaya: editing.riwaya,
+              }).eq("id", editing.id);
+              notify(error ? error.message : "تم الحفظ", !error);
+              if (!error) { setEditing(null); load(); }
+            }}>حفظ</button></>}>
+          <div className="stack">
+            <Field label="اسم القارئ (عربي)"><input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></Field>
+            <Field label="الاسم بالإنجليزي"><input dir="ltr" value={editing.name_en ?? ""} onChange={(e) => setEditing({ ...editing, name_en: e.target.value })} /></Field>
+            <Field label="الرواية / نوع التلاوة"><input value={editing.riwaya} onChange={(e) => setEditing({ ...editing, riwaya: e.target.value })} /></Field>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -454,7 +476,7 @@ function FeaturedOrder({ notify }: { notify: Notify }) {
         <Icon name="sparkle" size={18} />
         <div>
           هذا ترتيب صف «قراء مشهورون» في قسم الاستماع: الأول هنا يظهر أولاً في التطبيق.
-          لإضافة قارئ للقائمة اضغط ★ تمييز بجانبه في «قراء التطبيق»، والقراء الذين تضيفهم يُضافون تلقائياً.
+          لإضافة قارئ للقائمة اضغط ★ تمييز بجانبه في «قراء التطبيق». في التطبيق لا يظهر في هذا الصف إلا من تميّزه هنا.
         </div>
       </div>
       {list === null ? <Skeleton rows={4} /> : list.length === 0 ? (
