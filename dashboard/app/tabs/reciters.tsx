@@ -173,21 +173,58 @@ function MyReciters({ notify }: { notify: Notify }) {
   }, [notify]);
   useEffect(() => { load(); }, [load]);
 
+  const [scan, setScan] = useState("");
+
+  /** Page link (way2quran) -> audio folder; folder links are kept as-is. */
+  function toFolder(raw: string): string {
+    const u = raw.trim();
+    const m = u.match(/way2quran\.com\/(?:[a-z]{2}\/)?reciters\/([\w-]+)/i);
+    if (m) return `https://media.way2quran.com/${m[1]}/hafs-an-asim/`;
+    return u.endsWith("/") ? u : u + "/";
+  }
+
+  /** Checks which surahs exist as NNN.mp3 (and which are split into parts). */
+  async function scanSurahs(folder: string) {
+    const whole: number[] = [];
+    const parts: number[] = [];
+    const n3 = (i: number) => String(i).padStart(3, "0");
+    const head = async (url: string) => {
+      try { return (await fetch(url, { method: "HEAD" })).ok; } catch { return false; }
+    };
+    for (let start = 1; start <= 114; start += 12) {
+      const batch = Array.from({ length: Math.min(12, 115 - start) }, (_, k) => start + k);
+      setScan(`جاري فحص السور ${start}–${batch[batch.length - 1]} من 114...`);
+      await Promise.all(batch.map(async (i) => {
+        if (await head(`${folder}${n3(i)}.mp3`)) whole.push(i);
+        else if (await head(`${folder}${n3(i)}-001.mp3`)) parts.push(i);
+      }));
+    }
+    setScan("");
+    return { whole: whole.sort((a, b) => a - b), parts: parts.sort((a, b) => a - b) };
+  }
+
   async function add() {
     if (!name.trim()) return notify("اكتب اسم القارئ", false);
-    const url = link.trim();
-    if (mode === "link" && !/^https?:\/\//.test(url)) return notify("اكتب رابطاً صحيحاً يبدأ بـ https://", false);
+    let url = link.trim();
+    let surahs: number[] | null = null;
     if (mode === "link") {
-      // Check the link points at a folder of 001.mp3 ... files.
-      const test = `${url.endsWith("/") ? url : url + "/"}001.mp3`;
-      try {
-        const r = await fetch(test, { method: "HEAD" });
-        if (!r.ok) notify("تنبيه: لم أجد 001.mp3 في هذا الرابط، تأكد منه", false);
-      } catch { /* CORS may block the check; keep going */ }
+      if (!/^https?:\/\//.test(url)) return notify("اكتب رابطاً صحيحاً يبدأ بـ https://", false);
+      url = toFolder(url);
+      const { whole, parts } = await scanSurahs(url);
+      if (whole.length === 0) {
+        return notify(parts.length
+          ? `هذا القارئ سوره مقسمة لأجزاء (${parts.length} سورة) وغير مدعومة حالياً`
+          : "لم أجد ملفات سور في هذا الرابط، تأكد منه", false);
+      }
+      surahs = whole;
+      if (parts.length) {
+        notify(`تمت إضافة ${whole.length} سورة. ${parts.length} سورة مقسمة لأجزاء لم تُضف`, true);
+      }
     }
     const { data, error } = await supabase.from("reciters").insert({
       name: name.trim(), riwaya: riwaya.trim() || "حفص عن عاصم",
       server_url: mode === "link" ? url : null,
+      surahs: mode === "link" ? surahs : null,
       is_published: mode === "link",
     }).select("*, recitations(count)").single();
     if (error) return notify(error.message, false);
@@ -267,7 +304,7 @@ function MyReciters({ notify }: { notify: Notify }) {
 
       {adding && (
         <Modal title="إضافة قارئ" onClose={() => setAdding(false)}
-          footer={<><button className="btn ghost" onClick={() => setAdding(false)}>إلغاء</button><button className="btn" onClick={add}>إضافة</button></>}>
+          footer={<><button className="btn ghost" onClick={() => setAdding(false)}>إلغاء</button><button className="btn" disabled={!!scan} onClick={add}>{scan ? "جاري الفحص..." : "إضافة"}</button></>}>
           <div className="stack">
             <Field label="اسم القارئ"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: الشيخ محمد جمعة" /></Field>
             <Field label="الرواية / نوع التلاوة"><input value={riwaya} onChange={(e) => setRiwaya(e.target.value)} /></Field>
@@ -276,9 +313,12 @@ function MyReciters({ notify }: { notify: Notify }) {
               <button className={mode === "link" ? "on" : ""} onClick={() => setMode("link")}>رابط مجلد التلاوات</button>
             </div>
             {mode === "link" ? (
-              <Field label="رابط المجلد" hint="رابط فيه ملفات السور بأسماء 001.mp3 حتى 114.mp3 (مثل روابط mp3quran أو way2quran).">
-                <input dir="ltr" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://server.mp3quran.net/reciter/" />
+              <>
+              <Field label="رابط القارئ" hint="الصق رابط صفحة القارئ من way2quran، أو رابط مجلد فيه ملفات 001.mp3 حتى 114.mp3 (مثل mp3quran). سيتم فحص السور المتاحة تلقائياً.">
+                <input dir="ltr" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://way2quran.com/ar/reciters/..." />
               </Field>
+              {scan && <div className="note"><Icon name="refresh" size={18} /><div>{scan}</div></div>}
+              </>
             ) : (
               <div className="note"><Icon name="upload" size={18} /><div>بعد الإضافة تفتح لك نافذة رفع السور.</div></div>
             )}
