@@ -38,6 +38,9 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - pdfium_flutter (0.1.5):
+    - Flutter
+    - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
   - radio_player (0.0.1):
@@ -71,6 +74,7 @@ DEPENDENCIES:
   - just_audio (from `.symlinks/plugins/just_audio/darwin`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - pdfium_flutter (from `.symlinks/plugins/pdfium_flutter/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - radio_player (from `.symlinks/plugins/radio_player/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
@@ -113,6 +117,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  pdfium_flutter:
+    :path: ".symlinks/plugins/pdfium_flutter/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   radio_player:
@@ -144,6 +150,7 @@ SPEC CHECKSUMS:
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
+  pdfium_flutter: e5a6e881af0b182d5b0465ebad23a8a20caa28d4
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   radio_player: d226a6f9e3c1a638efa1527013419ae9f7fd3ead
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a

@@ -19,7 +19,7 @@ type Book = {
   sort: number;
 };
 
-type CatalogBook = { id: number; title: string; author: string; category: string; pages: number; size: number };
+type CatalogBook = { id: number; title: string; author: string; category: string; pages: number; size: number; hasPdf: boolean };
 
 const CATALOG_URL = "https://files.turath.io/data-v3.json";
 let catalogPromise: Promise<Map<number, CatalogBook>> | null = null;
@@ -40,6 +40,7 @@ function loadCatalog(): Promise<Map<number, CatalogBook>> {
           category: c ? String(c.name) : "",
           pages: Number(b.page_count ?? 0),
           size: Number(b.size ?? 0),
+          hasPdf: b.has_pdf === (true as unknown as number),
         });
       }
       return out;
@@ -125,7 +126,7 @@ export default function Books({ notify }: { notify: Notify }) {
         <Icon name="book" size={18} />
         <div>
           الكتب المميزة ★ تظهر في «كتب مختارة» بالتطبيق بنفس هذا الترتيب. أي كتاب في مكتبة تراث (أكثر من 8 آلاف كتاب) يظهر
-          للمستخدم بالبحث حتى لو لم تضفه هنا. «إخفاء» يمنع الكتاب من الظهور حتى في البحث. كتب PDF تُفتح خارج التطبيق.
+          للمستخدم في البحث وفي «الأقسام» تلقائياً، وأي كتاب جديد يضيفه تراث يظهر وحده. «إخفاء» يمنع الكتاب من الظهور في أي مكان.
         </div>
       </div>
 
@@ -208,7 +209,7 @@ function AddBook({ notify, existing, onClose, onSaved }: {
     const out: CatalogBook[] = [];
     for (const b of catalog.values()) {
       const k = norm(`${b.title} ${b.author}`);
-      if (words.every((w) => k.includes(w))) out.push(b);
+      if (b.hasPdf && words.every((w) => k.includes(w))) out.push(b);
     }
     return out.sort((a, b) => b.size - a.size).slice(0, 30);
   }, [catalog, query]);
@@ -220,6 +221,7 @@ function AddBook({ notify, existing, onClose, onSaved }: {
     let row: Partial<Book>;
     if (mode === "turath") {
       if (!picked) { setBusy(false); return notify("اختر كتاباً من تراث أولاً", false); }
+      if (!picked.hasPdf) { setBusy(false); return notify("هذا الكتاب ليس له نسخة مصورة PDF في تراث، فلا يمكن فتحه في التطبيق", false); }
       if (existing.some((b) => b.turath_id === picked.id)) { setBusy(false); return notify("هذا الكتاب موجود بالفعل", false); }
       row = { source: "turath", turath_id: picked.id, title: picked.title, author: picked.author, category: picked.category, pages: picked.pages };
     } else {
@@ -249,7 +251,7 @@ function AddBook({ notify, existing, onClose, onSaved }: {
 
       {mode === "turath" ? (
         <>
-          <Field label="رابط الكتاب في تراث" hint="مثال: https://app.turath.io/book/12028 — يُقرأ داخل التطبيق صفحة بصفحة">
+          <Field label="رابط الكتاب في تراث" hint="مثال: https://app.turath.io/book/12028 — يفتح في التطبيق بالنسخة المصورة PDF للطبعة الورقية">
             <input dir="ltr" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://app.turath.io/book/…" />
           </Field>
           <Field label="أو ابحث بالاسم" hint={catalogError ? "تعذر تحميل فهرس تراث، استخدم الرابط" : catalog ? `${catalog.size} كتاباً في تراث` : "جارٍ تحميل فهرس تراث…"}>
@@ -266,7 +268,7 @@ function AddBook({ notify, existing, onClose, onSaved }: {
             </div>
           )}
           {picked ? (
-            <div className="note"><Icon name="check" size={18} /><div><b>{picked.title}</b><br />{picked.author} · {picked.category} · {picked.pages} صفحة</div></div>
+            <div className="note"><Icon name={picked.hasPdf ? "check" : "x"} size={18} /><div><b>{picked.title}</b><br />{picked.author} · {picked.category} · {picked.pages} صفحة{picked.hasPdf ? "" : " — لا توجد نسخة مصورة PDF لهذا الكتاب، اختر طبعة أخرى"}</div></div>
           ) : turathIdFrom(link) && catalog ? (
             <div className="note"><Icon name="x" size={18} /><div>لم يُعثر على هذا الرقم في فهرس تراث</div></div>
           ) : null}
@@ -276,7 +278,7 @@ function AddBook({ notify, existing, onClose, onSaved }: {
           <Field label="اسم الكتاب"><input value={pdf.title} onChange={(e) => setPdf({ ...pdf, title: e.target.value })} /></Field>
           <Field label="المؤلف"><input value={pdf.author} onChange={(e) => setPdf({ ...pdf, author: e.target.value })} /></Field>
           <Field label="التصنيف" hint="اختياري — مثال: السيرة النبوية"><input value={pdf.category} onChange={(e) => setPdf({ ...pdf, category: e.target.value })} /></Field>
-          <Field label="رابط PDF" hint="رابط مباشر للملف، يُفتح خارج التطبيق">
+          <Field label="رابط PDF" hint="رابط مباشر لملف PDF، يُحمَّل ويُفتح داخل التطبيق">
             <input dir="ltr" value={pdf.url} onChange={(e) => setPdf({ ...pdf, url: e.target.value })} placeholder="https://…/book.pdf" />
           </Field>
         </>

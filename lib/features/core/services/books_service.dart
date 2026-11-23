@@ -54,26 +54,29 @@ class LibBook {
       );
 }
 
-/// One heading in a book's table of contents.
-class BookHeading {
-  final String title;
-  final int level;
+/// One PDF file of a book (multi-volume works have one per volume).
+class BookVolume {
+  final String label;
+  final String url;
+  const BookVolume(this.label, this.url);
+}
+
+/// A saved place in a book.
+class BookMark {
+  final int volume;
   final int page;
-  const BookHeading(this.title, this.level, this.page);
-}
+  final String note;
+  final DateTime at;
+  const BookMark(this.volume, this.page, this.note, this.at);
 
-class BookIndex {
-  final List<BookHeading> headings;
-  final int pages;
-  const BookIndex(this.headings, this.pages);
-}
-
-/// One page of a Turath book.
-class BookPage {
-  final String text;
-  final String? volume;
-  final int? printedPage;
-  const BookPage(this.text, this.volume, this.printedPage);
+  Map<String, dynamic> toJson() =>
+      {'v': volume, 'p': page, 'n': note, 't': at.millisecondsSinceEpoch};
+  factory BookMark.fromJson(Map j) => BookMark(
+        (j['v'] as num).toInt(),
+        (j['p'] as num).toInt(),
+        j['n'] as String? ?? '',
+        DateTime.fromMillisecondsSinceEpoch((j['t'] as num).toInt()),
+      );
 }
 
 /// The library: books picked in the dashboard, the full Turath catalog for
@@ -89,9 +92,6 @@ class BooksService {
 
   static const _kFeatured = 'library_featured';
   static const _kRecent = 'library_recent';
-  static String _kLast(int id) => 'library_last_$id';
-  static const _kFont = 'library_font_size';
-  static const _kTheme = 'library_theme';
 
   final ValueNotifier<List<LibBook>> featured = ValueNotifier(const []);
   final ValueNotifier<List<LibBook>> recent = ValueNotifier(const []);
@@ -138,10 +138,25 @@ class BooksService {
       for (final r in rows)
         if (r['hidden'] == true && r['pdf_url'] != null) r['pdf_url'] as String
     };
-    featured.value = [
+    _featuredAll = [
       for (final r in rows)
         if (r['featured'] == true && r['hidden'] != true) LibBook.fromJson(r)
     ];
+    _publishFeatured();
+  }
+
+  List<LibBook> _featuredAll = const [];
+  Set<int>? _pdfIds;
+
+  /// Turath books without a scanned edition can't be opened, so they are
+  /// left out once the catalog says which ones have a PDF.
+  void _publishFeatured() {
+    final ids = _pdfIds;
+    featured.value = ids == null
+        ? _featuredAll
+        : _featuredAll
+            .where((b) => !b.isText || ids.contains(b.turathId))
+            .toList();
   }
 
   List<LibBook> _decodeList(String? s) {
@@ -187,12 +202,28 @@ class BooksService {
       _catalogKeys = [
         for (final b in list) searchKey('${b.title} ${b.author ?? ''}')
       ];
+      _pdfIds = {for (final b in list) b.turathId!};
+      _publishFeatured();
       return list;
     } catch (e) {
       debugPrint('library catalog: $e');
       _catalogLoading = null;
       return const [];
     }
+  }
+
+  /// Sections of the catalog with their books, biggest works first.
+  Future<Map<String, List<LibBook>>> sections() async {
+    final all = await catalog();
+    final out = <String, List<LibBook>>{};
+    for (final b in all) {
+      if (_hiddenTurath.contains(b.turathId)) continue;
+      out.putIfAbsent(b.category ?? 'كتب عامة', () => []).add(b);
+    }
+    for (final l in out.values) {
+      l.sort((a, b) => b.size.compareTo(a.size));
+    }
+    return out;
   }
 
   /// Titles and authors matching [query]; big works first.
@@ -229,7 +260,7 @@ class BooksService {
   bool isHiddenPdf(String url) => _hiddenPdf.contains(url);
 
   // ---------------------------------------------------------------------------
-  // Reading
+  // Reading (PDF of the printed edition, downloaded once per volume)
   // ---------------------------------------------------------------------------
   Future<Directory> _dir() async {
     final base = await getApplicationSupportDirectory();
@@ -238,97 +269,209 @@ class BooksService {
     return d;
   }
 
-  Future<Directory> _bookDir(int id) async {
-    final d = Directory('${(await _dir()).path}/$id');
+  Future<Directory> _bookDir(LibBook b) async {
+    final d = Directory('${(await _dir()).path}/${b.key}');
     if (!d.existsSync()) d.createSync(recursive: true);
     return d;
   }
 
-  /// Table of contents and page count of a Turath book.
-  Future<BookIndex> index(int id) async {
-    final f = File('${(await _bookDir(id)).path}/index.json');
+  /// The PDF files of [b]. Turath lists them in the book's metadata; the
+  /// list is cached so downloaded books open offline.
+  Future<List<BookVolume>> volumes(LibBook b) async {
+    if (!b.isText) return [BookVolume('', b.pdfUrl!)];
+    final f = File('${(await _bookDir(b)).path}/meta.json');
     String? body;
-    if (f.existsSync()) {
-      body = await f.readAsString();
-    } else {
+    try {
       final res = await http
-          .get(Uri.parse('$_api/book?id=$id&include=indexes&ver=3'))
+          .get(Uri.parse('$_api/book?id=${b.turathId}&ver=3'))
           .timeout(const Duration(seconds: 25));
-      if (res.statusCode != 200) return const BookIndex([], 0);
-      body = utf8.decode(res.bodyBytes);
-      await f.writeAsString(body);
+      if (res.statusCode == 200) {
+        body = utf8.decode(res.bodyBytes);
+        await f.writeAsString(body);
+      }
+    } catch (_) {}
+    body ??= f.existsSync() ? await f.readAsString() : null;
+    if (body == null) throw const SocketException('offline');
+    final meta = (jsonDecode(body) as Map)['meta'] as Map? ?? const {};
+    final links = meta['pdf_links'] as Map?;
+    final root = (links?['root'] as String?) ?? '';
+    final files = ((links?['files'] as List?) ?? const []).cast<String>();
+    final base = 'https://files.turath.io/pdf/'
+        '${root.split('/').map(Uri.encodeComponent).join('/')}';
+    final out = <BookVolume>[];
+    final names = [for (final e in files) e.split('|').first];
+    final auto = names.length > 1 ? _volumeLabels(names) : const <String>[];
+    for (final entry in files) {
+      final parts = entry.split('|');
+      out.add(BookVolume(
+          parts.length > 1 && parts[1].trim().isNotEmpty
+              ? parts[1].trim()
+              : files.length > 1
+                  ? auto[out.length]
+                  : '',
+          '$base/${Uri.encodeComponent(parts[0])}'));
     }
-    final d = jsonDecode(body) as Map;
-    final idx = (d['indexes'] as Map?) ?? const {};
-    final list = (idx['headings'] as List?) ?? const [];
-    return BookIndex([
-      for (final h in list)
-        BookHeading(_stripTags((h['title'] as String).trim()),
-            (h['level'] as num?)?.toInt() ?? 1, (h['page'] as num).toInt())
-    ], (idx['page_map'] as List?)?.length ?? 0);
+    return out;
   }
 
-  final Map<String, Future<BookPage?>> _inflight = {};
-
-  /// One page (1-based). Read from disk when cached.
-  Future<BookPage?> page(int id, int pg) =>
-      _inflight.putIfAbsent('$id:$pg', () => _page(id, pg)).whenComplete(() {
-        _inflight.remove('$id:$pg');
-      });
-
-  Future<BookPage?> _page(int id, int pg) async {
-    final f = File('${(await _bookDir(id)).path}/$pg.json');
-    String? body;
-    if (f.existsSync()) {
-      body = await f.readAsString();
-    } else {
-      final res = await http
-          .get(Uri.parse('$_api/page?book_id=$id&pg=$pg&ver=3'))
-          .timeout(const Duration(seconds: 25));
-      if (res.statusCode != 200) return null;
-      body = utf8.decode(res.bodyBytes);
-      await f.writeAsString(body);
+  /// Labels files like "san00.pdf" (cover), "san03.pdf" (volume 3) and
+  /// "sansera1.pdf" (an appendix) using the prefix all files share.
+  static List<String> _volumeLabels(List<String> names) {
+    var prefix = names.first;
+    for (final n in names) {
+      while (!n.startsWith(prefix)) {
+        prefix = prefix.substring(0, prefix.length - 1);
+      }
     }
-    final d = jsonDecode(body) as Map;
-    Map meta = const {};
-    final m = d['meta'];
-    if (m is String) {
-      meta = jsonDecode(m) as Map;
-    } else if (m is Map) {
-      meta = m;
-    }
-    return BookPage(
-      d['text'] as String? ?? '',
-      meta['vol']?.toString(),
-      (meta['page'] as num?)?.toInt(),
-    );
+    var extra = 0;
+    return [
+      for (var i = 0; i < names.length; i++)
+        () {
+          final rest = names[i]
+              .substring(prefix.length)
+              .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
+          final n = int.tryParse(rest);
+          if (n == 0) return 'الغلاف';
+          if (n != null && n < 1000) return 'الجزء $n';
+          if (RegExp(r'^\d+$').hasMatch(rest) || rest.isEmpty) {
+            return 'الجزء ${i + 1}';
+          }
+          extra++;
+          return 'ملحق $extra';
+        }()
+    ];
   }
 
-  Future<int> lastPage(int id) async =>
-      (await SharedPreferences.getInstance()).getInt(_kLast(id)) ?? 1;
+  Future<File> volumeFile(LibBook b, int index) async =>
+      File('${(await _bookDir(b)).path}/v$index.pdf');
 
-  Future<void> saveLastPage(int id, int pg) async =>
-      (await SharedPreferences.getInstance()).setInt(_kLast(id), pg);
+  Future<bool> isDownloaded(LibBook b, int index) async =>
+      (await volumeFile(b, index)).existsSync();
+
+  /// Downloads volume [index] of [b]; [onProgress] gets 0..1 (or null when
+  /// the size is unknown).
+  Future<File> download(LibBook b, int index, BookVolume v,
+      {void Function(double? p)? onProgress}) async {
+    final dest = await volumeFile(b, index);
+    if (dest.existsSync()) {
+      // Mark as recently used so the cache keeps it.
+      dest.setLastModifiedSync(DateTime.now());
+      return dest;
+    }
+    final tmp = File('${dest.path}.part');
+    final client = http.Client();
+    try {
+      final res = await client.send(http.Request('GET', Uri.parse(v.url)));
+      if (res.statusCode != 200) {
+        throw HttpException('HTTP ${res.statusCode}');
+      }
+      final total = res.contentLength;
+      var got = 0;
+      final sink = tmp.openWrite();
+      await for (final chunk in res.stream) {
+        sink.add(chunk);
+        got += chunk.length;
+        onProgress?.call(total == null || total == 0 ? null : got / total);
+      }
+      await sink.close();
+      await tmp.rename(dest.path);
+      await _trimCache(keep: b.key);
+      return dest;
+    } catch (e) {
+      if (tmp.existsSync()) tmp.deleteSync();
+      rethrow;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Downloaded books are a cache: past this size the least recently read
+  /// volumes are removed (never the book being read), so the app does not
+  /// keep growing on the phone.
+  static const cacheLimitBytes = 400 * 1024 * 1024;
+
+  Future<void> _trimCache({required String keep}) async {
+    final root = await _dir();
+    final files = <File>[];
+    for (final d in root.listSync().whereType<Directory>()) {
+      if (d.path.endsWith('/$keep')) continue;
+      files.addAll(
+          d.listSync().whereType<File>().where((f) => f.path.endsWith('.pdf')));
+    }
+    var total = await cacheSize();
+    if (total <= cacheLimitBytes) return;
+    files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
+    for (final f in files) {
+      if (total <= cacheLimitBytes) break;
+      total -= f.lengthSync();
+      f.deleteSync();
+    }
+  }
+
+  /// Bytes used by downloaded books.
+  Future<int> cacheSize() async {
+    var total = 0;
+    for (final e in (await _dir()).listSync(recursive: true)) {
+      if (e is File && e.path.endsWith('.pdf')) total += e.lengthSync();
+    }
+    return total;
+  }
+
+  /// Removes every downloaded book.
+  Future<void> clearCache() async {
+    for (final e in (await _dir()).listSync(recursive: true)) {
+      if (e is File && e.path.endsWith('.pdf')) e.deleteSync();
+    }
+  }
+
+  /// Removes the downloaded files of [b].
+  Future<void> deleteDownloads(LibBook b) async {
+    final d = await _bookDir(b);
+    for (final f in d.listSync()) {
+      if (f is File && f.path.endsWith('.pdf')) f.deleteSync();
+    }
+  }
+
+  static String _kPos(LibBook b) => 'library_pos_${b.key}';
+  static String _kMarks(LibBook b) => 'library_marks_${b.key}';
+
+  /// Last [volume, page] read in [b].
+  Future<List<int>> position(LibBook b) async {
+    final s = (await SharedPreferences.getInstance()).getString(_kPos(b));
+    final p = s?.split(':').map(int.tryParse).toList();
+    if (p == null || p.length != 2 || p.contains(null)) return const [0, 1];
+    return [p[0]!, p[1]!];
+  }
+
+  Future<void> savePosition(LibBook b, int volume, int page) async =>
+      (await SharedPreferences.getInstance())
+          .setString(_kPos(b), '$volume:$page');
+
+  Future<List<BookMark>> bookmarks(LibBook b) async {
+    final s = (await SharedPreferences.getInstance()).getString(_kMarks(b));
+    if (s == null) return [];
+    try {
+      return (jsonDecode(s) as List)
+          .map((e) => BookMark.fromJson(e as Map))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveBookmarks(LibBook b, List<BookMark> marks) async =>
+      (await SharedPreferences.getInstance()).setString(
+          _kMarks(b), jsonEncode(marks.map((m) => m.toJson()).toList()));
 
   /// Remembers [b] at the front of "continue reading".
   Future<void> markOpened(LibBook b) async {
-    final list = [b, ...recent.value.where((e) => e.key != b.key)]
-        .take(12)
-        .toList();
+    final list =
+        [b, ...recent.value.where((e) => e.key != b.key)].take(12).toList();
     recent.value = list;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
         _kRecent, jsonEncode(list.map((e) => e.toJson()).toList()));
   }
-
-  Future<double> fontSize() async =>
-      (await SharedPreferences.getInstance()).getDouble(_kFont) ?? 20;
-  Future<void> setFontSize(double v) async =>
-      (await SharedPreferences.getInstance()).setDouble(_kFont, v);
-  Future<int> readerTheme() async =>
-      (await SharedPreferences.getInstance()).getInt(_kTheme) ?? 0;
-  Future<void> setReaderTheme(int v) async =>
-      (await SharedPreferences.getInstance()).setInt(_kTheme, v);
 
   // ---------------------------------------------------------------------------
   // IslamHouse (PDF books, opened outside the app)
@@ -366,6 +509,8 @@ List<LibBook> _parseCatalog(String body) {
   final cats = (d['cats'] as Map?) ?? const {};
   final out = <LibBook>[];
   for (final b in ((d['books'] as Map?) ?? const {}).values) {
+    // Only books with a scanned printed edition can be opened.
+    if (b['has_pdf'] != true) continue;
     final a = authors['${b['author_id']}'];
     final c = cats['${b['cat_id']}'];
     out.add(LibBook(
@@ -379,5 +524,3 @@ List<LibBook> _parseCatalog(String body) {
   }
   return out;
 }
-
-String _stripTags(String s) => s.replaceAll(RegExp(r'<[^>]*>'), '');

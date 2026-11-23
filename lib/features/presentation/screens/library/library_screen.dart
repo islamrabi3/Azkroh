@@ -4,9 +4,7 @@ import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/features/core/widgets/paged_list.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'book_reader_screen.dart';
+import 'pdf_book_screen.dart';
 
 /// «المكتبة»: classical books from Turath (read in-app) and IslamHouse PDFs.
 class LibraryScreen extends StatefulWidget {
@@ -21,7 +19,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   String _query = '';
   List<LibBook>? _results;
   bool _searching = false;
-  int _tab = 0; // 0: Turath, 1: IslamHouse
+  int _tab = 0; // 0: featured, 1: sections, 2: IslamHouse
+  Future<Map<String, List<LibBook>>>? _sections;
 
   // IslamHouse paging
   final List<LibBook> _ih = [];
@@ -70,18 +69,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _open(LibBook b) async {
-    if (b.isText) {
-      await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => BookReaderScreen(book: b)));
-      return;
-    }
-    _svc.markOpened(b);
-    final ok = await launchUrl(Uri.parse(b.pdfUrl!),
-        mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(tr('تعذر فتح الكتاب'))));
-    }
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => PdfBookScreen(book: b)));
+    if (mounted) setState(() => _storageTick++);
+  }
+
+  Future<void> _openSection(String name, List<LibBook> books) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => _SectionScreen(name: name, books: books, onOpen: _open)));
   }
 
   @override
@@ -92,7 +87,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         backgroundColor: AppStyle.background,
         body: NotificationListener<ScrollNotification>(
           onNotification: (n) {
-            if (_tab == 1 &&
+            if (_tab == 2 &&
                 _query.isEmpty &&
                 n.metrics.pixels > n.metrics.maxScrollExtent - 600) {
               _moreIslamHouse();
@@ -106,7 +101,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ..._resultSlivers()
               else ...[
                 _tabs(),
-                if (_tab == 0) ..._turathSlivers() else ..._ihSlivers(),
+                if (_tab == 0)
+                  ..._turathSlivers()
+                else if (_tab == 1)
+                  ..._sectionSlivers()
+                else
+                  ..._ihSlivers(),
               ],
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
@@ -185,11 +185,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         child: GestureDetector(
           onTap: () {
             setState(() => _tab = i);
-            if (i == 1 && _ih.isEmpty) _moreIslamHouse();
+            if (i == 1) _sections ??= _svc.sections();
+            if (i == 2 && _ih.isEmpty) _moreIslamHouse();
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
               color: on ? AppStyle.primaryGreen : Colors.white,
               borderRadius: BorderRadius.circular(14),
@@ -202,11 +203,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Icon(icon,
                     size: 18, color: on ? Colors.white : AppStyle.textLight),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        fontFamily: 'AppSans',
-                        fontWeight: FontWeight.w700,
-                        color: on ? Colors.white : AppStyle.textDark)),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontFamily: 'AppSans',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: on ? Colors.white : AppStyle.textDark)),
+                ),
               ],
             ),
           ),
@@ -219,9 +225,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
         child: Row(
           children: [
-            chip(0, tr('كتب التراث'), Icons.auto_stories_rounded),
-            const SizedBox(width: 10),
-            chip(1, tr('مكتبة إسلام هاوس'), Icons.picture_as_pdf_rounded),
+            chip(0, tr('مختارات'), Icons.auto_awesome_rounded),
+            const SizedBox(width: 8),
+            chip(1, tr('الأقسام'), Icons.grid_view_rounded),
+            const SizedBox(width: 8),
+            chip(2, tr('إسلام هاوس'), Icons.picture_as_pdf_rounded),
           ],
         ),
       ),
@@ -317,12 +325,190 @@ class _LibraryScreenState extends State<LibraryScreen> {
             _grid(list),
         ]),
       ),
+      SliverToBoxAdapter(child: _storageRow()),
+    ];
+  }
+
+  int _storageTick = 0;
+
+  /// Space used by downloaded books, with a way to free it.
+  Widget _storageRow() {
+    return FutureBuilder<int>(
+      key: ValueKey(_storageTick),
+      future: _svc.cacheSize(),
+      builder: (_, snap) {
+        final bytes = snap.data ?? 0;
+        if (bytes == 0) return const SizedBox.shrink();
+        final mb = (bytes / (1024 * 1024)).toStringAsFixed(0);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppStyle.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.sd_storage_rounded,
+                    color: AppStyle.textLight, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${tr('الكتب المحمّلة')}: $mb MB · ${tr('الحد الأقصى')} ${BooksService.cacheLimitBytes ~/ (1024 * 1024)} MB',
+                    style: const TextStyle(
+                        fontFamily: 'AppSans',
+                        fontSize: 12.5,
+                        color: AppStyle.textLight),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await _svc.clearCache();
+                    if (mounted) setState(() => _storageTick++);
+                  },
+                  child: Text(tr('حذف الكل'),
+                      style: const TextStyle(color: Color(0xFFB3423A))),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static const _sectionIcons = <String, IconData>{
+    'التفسير': Icons.menu_book_rounded,
+    'كتب السنة': Icons.auto_stories_rounded,
+    'شروح الحديث': Icons.chrome_reader_mode_rounded,
+    'السيرة النبوية': Icons.mosque_rounded,
+    'التاريخ': Icons.history_edu_rounded,
+    'التراجم والطبقات': Icons.groups_rounded,
+    'العقيدة': Icons.verified_rounded,
+    'الرقائق والآداب والأذكار': Icons.favorite_rounded,
+    'الفتاوى': Icons.question_answer_rounded,
+    'كتب اللغة': Icons.translate_rounded,
+    'الأدب': Icons.edit_note_rounded,
+    'الطب': Icons.healing_rounded,
+  };
+
+  List<Widget> _sectionSlivers() {
+    _sections ??= _svc.sections();
+    return [
+      SliverToBoxAdapter(
+        child: FutureBuilder<Map<String, List<LibBook>>>(
+          future: _sections,
+          builder: (_, snap) {
+            final m = snap.data;
+            if (m == null) {
+              return Padding(
+                padding: const EdgeInsets.all(48),
+                child: Center(
+                  child: snap.connectionState == ConnectionState.done
+                      ? TextButton(
+                          onPressed: () => setState(
+                              () => _sections = _svc.sections()),
+                          child: Text(tr('إعادة المحاولة')))
+                      : const AppLoader(),
+                ),
+              );
+            }
+            final names = m.keys.toList()
+              ..sort((a, b) => m[b]!.length.compareTo(m[a]!.length));
+            final total = m.values.fold<int>(0, (a, l) => a + l.length);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+                  child: Text('$total ${tr('كتاباً في')} ${names.length} ${tr('قسماً')}',
+                      style: const TextStyle(
+                          fontFamily: 'AppSans',
+                          fontSize: 13,
+                          color: AppStyle.textLight)),
+                ),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: names.length,
+                  gridDelegate:
+                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.3,
+                  ),
+                  itemBuilder: (_, i) {
+                    final n = names[i];
+                    return Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _openSection(n, m[n]!),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppStyle.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE7F2EE),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                    _sectionIcons[n] ?? Icons.book_rounded,
+                                    color: AppStyle.primaryGreen,
+                                    size: 20),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(n,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontFamily: 'AppSans',
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13.5,
+                                            color: AppStyle.textDark)),
+                                    Text('${m[n]!.length} ${tr('كتاب')}',
+                                        style: const TextStyle(
+                                            fontFamily: 'AppSans',
+                                            fontSize: 11.5,
+                                            color: AppStyle.textLight)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     ];
   }
 
   List<Widget> _ihSlivers() {
     return [
-      _title(tr('كتب إسلام هاوس'), sub: tr('تفتح بصيغة PDF')),
+      _title(tr('كتب إسلام هاوس'), sub: tr('أكثر من 5 آلاف كتاب')),
       _grid(_ih),
       SliverToBoxAdapter(
         child: Padding(
@@ -392,6 +578,67 @@ class _LibraryScreenState extends State<LibraryScreen> {
         delegate: SliverChildBuilderDelegate(
           (_, i) => BookCover(book: list[i], onTap: () => _open(list[i])),
           childCount: list.length,
+        ),
+      ),
+    );
+  }
+}
+
+/// All books of one section, biggest works first, with a local filter.
+class _SectionScreen extends StatefulWidget {
+  final String name;
+  final List<LibBook> books;
+  final Future<void> Function(LibBook) onOpen;
+  const _SectionScreen(
+      {required this.name, required this.books, required this.onOpen});
+
+  @override
+  State<_SectionScreen> createState() => _SectionScreenState();
+}
+
+class _SectionScreenState extends State<_SectionScreen> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = searchKey(_q);
+    final list = q.isEmpty
+        ? widget.books
+        : widget.books
+            .where((b) => searchKey('${b.title} ${b.author ?? ''}').contains(q))
+            .toList();
+    return Directionality(
+      textDirection: AppLocale.direction,
+      child: Scaffold(
+        backgroundColor: AppStyle.background,
+        appBar: AppBar(
+          backgroundColor: AppStyle.primaryGreen,
+          foregroundColor: Colors.white,
+          title: Text(widget.name,
+              style: const TextStyle(
+                  fontFamily: 'AppSans', fontWeight: FontWeight.w800)),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(64),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: DebouncedSearchField(
+                hint: '${tr('ابحث في')} ${widget.books.length} ${tr('كتاب')}',
+                onChanged: (v) => setState(() => _q = v),
+              ),
+            ),
+          ),
+        ),
+        body: GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          itemCount: list.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 140,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.66,
+          ),
+          itemBuilder: (_, i) =>
+              BookCover(book: list[i], onTap: () => widget.onOpen(list[i])),
         ),
       ),
     );
