@@ -72,17 +72,17 @@ class RemoteContentService {
           .from('content_items')
           .select('kind,section,title,description,url,thumbnail_url,sort')
           .eq('is_published', true)
-          .order('sort');
+          .order('sort', ascending: true);
       final rec = await c
           .from('reciters')
           .select(
               'id,name,name_en,riwaya,group_name,sort,server_url,surahs,recitations(surah,url)')
           .eq('is_published', true)
-          .order('sort');
+          .order('sort', ascending: true);
       final ov = await c
           .from('reciter_overrides')
           .select('key,hidden,featured,sort')
-          .order('sort');
+          .order('sort', ascending: true);
       final a = jsonEncode(rows);
       final b = jsonEncode(rec);
       final o = jsonEncode(ov);

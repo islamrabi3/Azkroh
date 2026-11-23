@@ -1,3 +1,4 @@
+import 'package:azkroh_app/features/presentation/screens/library/library_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/game/quiz_screens.dart';
 import 'package:azkroh_app/features/presentation/screens/home_extras.dart';
 import 'package:azkroh_app/features/core/notification_router.dart';
@@ -560,6 +561,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
       }),
       _Action(tr('الأحاديث'), Icons.auto_stories_outlined, Color(0xFF8C5A2B),
           () => navigateTo(context, HadithScreen())),
+      _Action(tr('المكتبة'), Icons.local_library_rounded, Color(0xFF5B3A1E),
+          () => navigateTo(context, const LibraryScreen())),
       _Action(tr('الصلاة'), Icons.access_time_rounded, Color(0xFF1B6E8C),
           () => navigateTo(context, PrayerScreen())),
       _Action(tr('القبلة'), Icons.explore_outlined, Color(0xFF6A4C93),

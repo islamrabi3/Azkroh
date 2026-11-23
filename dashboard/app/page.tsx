@@ -9,6 +9,7 @@ import Questions from "./tabs/questions";
 import Generate from "./tabs/generate";
 import Content from "./tabs/content";
 import Reciters from "./tabs/reciters";
+import Books from "./tabs/books";
 
 const NAV = [
   { id: "overview", label: "الرئيسية", icon: "home" },
@@ -16,6 +17,7 @@ const NAV = [
   { id: "generate", label: "توليد بالذكاء الاصطناعي", icon: "sparkle" },
   { id: "content", label: "الفيديوهات والروابط", icon: "play" },
   { id: "reciters", label: "القراء والتلاوات", icon: "mic" },
+  { id: "books", label: "الكتب", icon: "book" },
 ] as const;
 export type Tab = (typeof NAV)[number]["id"];
 
@@ -135,6 +137,7 @@ export default function Page() {
         {tab === "generate" && <Generate notify={notify} go={go} />}
         {tab === "content" && <Content notify={notify} />}
         {tab === "reciters" && <Reciters notify={notify} />}
+        {tab === "books" && <Books notify={notify} />}
       </main>
       <Toast msg={toast} onDone={clearToast} />
     </div>
