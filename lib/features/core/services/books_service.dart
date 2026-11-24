@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/paged_list.dart';
+import '../../../l10n/app_locale.dart';
 import 'backend.dart';
 
 /// A book in the library: either a Turath text book (read in-app page by
@@ -63,6 +64,17 @@ class BookVolume {
   /// File name on Turath, e.g. "san03.pdf".
   final String file;
   const BookVolume(this.label, this.url, [this.file = '']);
+}
+
+/// A volume label in the UI language. Labels are built in Arabic
+/// ("الجزء 3", "الغلاف", "ملحق 1") because the index matches on them.
+String volumeLabelUi(String ar) {
+  final vol = RegExp(r'^الجزء (\d+)$').firstMatch(ar);
+  if (vol != null) return tr('الجزء {n}').replaceAll('{n}', vol[1]!);
+  final app = RegExp(r'^ملحق (\d+)$').firstMatch(ar);
+  if (app != null) return tr('ملحق {n}').replaceAll('{n}', app[1]!);
+  if (ar == 'الغلاف' || ar == 'المقدمة') return tr(ar);
+  return ar;
 }
 
 /// One heading of a book's table of contents, pointing at a PDF page.

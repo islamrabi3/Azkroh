@@ -242,7 +242,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     return PopupMenuItem(
       value: v,
       child: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.direction,
         child: Row(
           children: [
             Icon(icon, size: 20, color: danger ? c : AppStyle.primaryGreen),
@@ -276,7 +276,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
         await shareFiles(context, [f.path],
             text: [
               widget.book.title,
-              if (_volumes.length > 1) _volumes[_vol].label,
+              if (_volumes.length > 1) volumeLabelUi(_volumes[_vol].label),
             ].join(' — '));
         return;
       case 'save':
@@ -342,14 +342,15 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           duration: const Duration(seconds: 2)));
   }
 
-  String _volLabel(int i) => _volumes.length > 1 ? _volumes[i].label : '';
+  String _volLabel(int i) =>
+      _volumes.length > 1 ? volumeLabelUi(_volumes[i].label) : '';
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.direction,
         child: Scaffold(
           backgroundColor: _bg,
           body: Stack(
@@ -783,7 +784,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                     : dl.failed.value
                         ? tr('توقف تحميل الكتاب')
                         : '${tr('تحميل الكتاب')} ${dl.done} / $n',
-                textDirection: TextDirection.rtl,
+                textDirection: AppLocale.direction,
                 style: const TextStyle(
                     fontFamily: 'AppSans', color: Colors.white70, fontSize: 12),
               ),
@@ -836,13 +837,18 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   String _ago(DateTime t) {
     final d = DateTime.now().difference(t);
     if (d.inMinutes < 1) return tr('الآن');
-    if (d.inHours < 1) return '${tr('منذ')} ${d.inMinutes} ${tr('دقيقة')}';
-    if (d.inDays < 1) return '${tr('منذ')} ${d.inHours} ${tr('ساعة')}';
+    if (d.inHours < 1) {
+      return tr('منذ {n} دقيقة').replaceAll('{n}', '${d.inMinutes}');
+    }
+    if (d.inDays < 1) {
+      return tr('منذ {n} ساعة').replaceAll('{n}', '${d.inHours}');
+    }
     return '${t.year}/${t.month}/${t.day}';
   }
 
   String _whereLabel(int vol, int page) => [
-        if (_volumes.length > 1 && vol < _volumes.length) _volumes[vol].label,
+        if (_volumes.length > 1 && vol < _volumes.length)
+          volumeLabelUi(_volumes[vol].label),
         '${tr('صفحة')} $page',
       ].join(' · ');
 
@@ -861,7 +867,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.direction,
         child: Padding(
           padding:
               EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -1025,7 +1031,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
 
   Widget _sheet(String title, Widget child) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: AppLocale.direction,
       child: DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.6,
@@ -1051,7 +1057,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                           fontWeight: FontWeight.w800,
                           color: AppStyle.textDark)),
                   const Spacer(),
-                  const Text('المصدر: تراث',
+                  Text(tr('المصدر: تراث'),
                       style: TextStyle(
                           fontFamily: 'AppSans',
                           fontSize: 11,
@@ -1117,7 +1123,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                     final m = _marks[i];
                     final where = [
                       if (_volumes.length > 1 && m.volume < _volumes.length)
-                        _volumes[m.volume].label,
+                        volumeLabelUi(_volumes[m.volume].label),
                       '${tr('صفحة')} ${m.page}',
                     ].join(' · ');
                     return Container(

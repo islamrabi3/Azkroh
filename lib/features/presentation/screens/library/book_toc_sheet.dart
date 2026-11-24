@@ -125,7 +125,7 @@ class _BookTocSheetState extends State<BookTocSheet> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: AppLocale.direction,
       child: Container(
         decoration: const BoxDecoration(
           color: AppStyle.background,
@@ -389,7 +389,9 @@ class _BookTocSheetState extends State<BookTocSheet> {
 
   String _shortVol(int v) {
     final l = widget.volumes[v].label;
-    return l.startsWith('الجزء ') ? 'ج${l.substring(6)}' : l;
+    return l.startsWith('الجزء ')
+        ? tr('ج{n}').replaceAll('{n}', l.substring(6))
+        : volumeLabelUi(l);
   }
 
   // ---------------------------------------------------------------------------
@@ -449,7 +451,7 @@ class _BookTocSheetState extends State<BookTocSheet> {
                           color: on ? AppStyle.goldColor : AppStyle.darkGold),
                     const SizedBox(height: 4),
                     Text(
-                      num != null ? tr('الجزء') : label,
+                      num != null ? tr('جزء الكتاب') : volumeLabelUi(label),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

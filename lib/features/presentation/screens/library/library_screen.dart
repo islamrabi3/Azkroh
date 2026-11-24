@@ -475,7 +475,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(n,
+                                    Text(tr(n),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -614,7 +614,7 @@ class _SectionScreenState extends State<_SectionScreen> {
         appBar: AppBar(
           backgroundColor: AppStyle.primaryGreen,
           foregroundColor: Colors.white,
-          title: Text(widget.name,
+          title: Text(tr(widget.name),
               style: const TextStyle(
                   fontFamily: 'AppSans', fontWeight: FontWeight.w800)),
           bottom: PreferredSize(
