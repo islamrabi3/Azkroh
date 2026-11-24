@@ -59,7 +59,19 @@ class LibBook {
 class BookVolume {
   final String label;
   final String url;
-  const BookVolume(this.label, this.url);
+
+  /// File name on Turath, e.g. "san03.pdf".
+  final String file;
+  const BookVolume(this.label, this.url, [this.file = '']);
+}
+
+/// One heading of a book's table of contents, pointing at a PDF page.
+class TocEntry {
+  final String title;
+  final int level;
+  final int volume;
+  final int page;
+  const TocEntry(this.title, this.level, this.volume, this.page);
 }
 
 /// A saved place in a book.
@@ -315,7 +327,8 @@ class BooksService {
               : files.length > 1
                   ? auto[out.length]
                   : '',
-          '$base/${Uri.encodeComponent(parts[0])}'));
+          '$base/${Uri.encodeComponent(parts[0])}',
+          parts[0]));
     }
     return out;
   }
@@ -349,6 +362,26 @@ class BooksService {
     ];
   }
 
+  /// Table of contents from Turath. Each heading's printed page is taken as
+  /// the PDF page (Turath's scans keep the printed numbering), and Turath's
+  /// volume names are matched to the PDF files.
+  Future<List<TocEntry>> toc(LibBook b, List<BookVolume> vols) async {
+    if (!b.isText || vols.isEmpty) return const [];
+    final f = File('${(await _bookDir(b)).path}/index.json');
+    String? body;
+    if (f.existsSync()) {
+      body = await f.readAsString();
+    } else {
+      final res = await http
+          .get(Uri.parse('$_api/book?id=${b.turathId}&include=indexes&ver=3'))
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode != 200) return const [];
+      body = utf8.decode(res.bodyBytes);
+      await f.writeAsString(body);
+    }
+    return compute(_parseToc, [body, vols.map((v) => v.label).toList()]);
+  }
+
   Future<File> volumeFile(LibBook b, int index) async =>
       File('${(await _bookDir(b)).path}/v$index.pdf');
 
@@ -358,7 +391,7 @@ class BooksService {
   /// Downloads volume [index] of [b]; [onProgress] gets 0..1 (or null when
   /// the size is unknown).
   Future<File> download(LibBook b, int index, BookVolume v,
-      {void Function(double? p)? onProgress}) async {
+      {void Function(double? p)? onProgress, http.Client? client}) async {
     final dest = await volumeFile(b, index);
     if (dest.existsSync()) {
       // Mark as recently used so the cache keeps it.
@@ -366,9 +399,10 @@ class BooksService {
       return dest;
     }
     final tmp = File('${dest.path}.part');
-    final client = http.Client();
+    final own = client == null;
+    final c = client ?? http.Client();
     try {
-      final res = await client.send(http.Request('GET', Uri.parse(v.url)));
+      final res = await c.send(http.Request('GET', Uri.parse(v.url)));
       if (res.statusCode != 200) {
         throw HttpException('HTTP ${res.statusCode}');
       }
@@ -388,7 +422,7 @@ class BooksService {
       if (tmp.existsSync()) tmp.deleteSync();
       rethrow;
     } finally {
-      client.close();
+      if (own) c.close();
     }
   }
 
@@ -560,6 +594,11 @@ class BookDownload {
   final ValueNotifier<double?> progress = ValueNotifier(null);
   final ValueNotifier<bool> failed = ValueNotifier(false);
 
+  /// True after the reader stopped the download.
+  final ValueNotifier<bool> paused = ValueNotifier(false);
+  bool _cancelled = false;
+  http.Client? _client;
+
   final List<int> _queue = [];
   final Map<int, List<Completer<void>>> _waiters = {};
   bool _running = false;
@@ -568,9 +607,10 @@ class BookDownload {
   bool get complete => done == volumes.length;
 
   Future<void> _start() async {
-    if (_running) return;
+    if (_running || _cancelled) return;
     _running = true;
     failed.value = false;
+    paused.value = false;
     final h = [
       for (var i = 0; i < volumes.length; i++) await _svc.isDownloaded(book, i)
     ];
@@ -584,13 +624,18 @@ class BookDownload {
       if (have.value[i]) continue;
       active.value = i;
       progress.value = null;
+      final client = _client = http.Client();
       try {
         await _svc.download(book, i, volumes[i],
-            onProgress: (p) => progress.value = p);
+            onProgress: (p) => progress.value = p, client: client);
         have.value = [...have.value]..[i] = true;
         _flushWaiters();
       } catch (e) {
-        failed.value = true;
+        if (_cancelled) {
+          paused.value = true;
+        } else {
+          failed.value = true;
+        }
         _queue.insert(0, i);
         for (final l in _waiters.values) {
           for (final c in l) {
@@ -599,10 +644,35 @@ class BookDownload {
         }
         _waiters.clear();
         break;
+      } finally {
+        client.close();
+        _client = null;
       }
     }
     active.value = null;
+    progress.value = null;
     _running = false;
+  }
+
+  /// Stops the download now; the part being downloaded is discarded.
+  void cancel() {
+    if (complete) return;
+    _cancelled = true;
+    paused.value = true;
+    _client?.close();
+    for (final l in _waiters.values) {
+      for (final c in l) {
+        if (!c.isCompleted) c.completeError(const DownloadCancelled());
+      }
+    }
+    _waiters.clear();
+  }
+
+  /// Continues after [cancel] or a failure.
+  void resume() {
+    _cancelled = false;
+    paused.value = false;
+    _start();
   }
 
   void _flushWaiters() {
@@ -620,6 +690,7 @@ class BookDownload {
   Future<void> waitFor(int i) {
     prioritizeFrom(i);
     if (have.value.length > i && have.value[i]) return Future.value();
+    if (_cancelled) resume();
     final c = Completer<void>();
     _waiters.putIfAbsent(i, () => []).add(c);
     if (!_running) _start();
@@ -640,5 +711,72 @@ class BookDownload {
   }
 
   /// Starts again after a failure.
-  void retry() => _start();
+  void retry() => resume();
+}
+
+
+List<TocEntry> _parseToc(List<Object> args) {
+  final body = args[0] as String;
+  final labels = (args[1] as List).cast<String>();
+  final d = jsonDecode(body) as Map;
+  final idx = (d['indexes'] as Map?) ?? const {};
+  final pageMap = ((idx['page_map'] as List?) ?? const []).cast<String>();
+  final textVols = ((idx['volumes'] as List?) ?? const []).cast<String>();
+
+  // Turath volume name -> PDF file index.
+  final map = <String, int>{};
+  if (labels.length == 1) {
+    for (final v in textVols) {
+      map[v] = 0;
+    }
+  } else {
+    final used = <int>{};
+    final rest = <String>[];
+    for (final v in textVols) {
+      final n = int.tryParse(v.trim());
+      var i = labels.indexOf(n != null ? 'الجزء $n' : v.trim());
+      if (i < 0 && n == null) i = labels.indexOf(v.trim());
+      if (i >= 0 && !used.contains(i)) {
+        map[v] = i;
+        used.add(i);
+      } else {
+        rest.add(v);
+      }
+    }
+    // Remaining names (e.g. appendices) take the remaining non-volume files
+    // in order.
+    final free = [
+      for (var i = 0; i < labels.length; i++)
+        if (!used.contains(i) &&
+            labels[i] != 'الغلاف' &&
+            !labels[i].startsWith('الجزء '))
+          i
+    ];
+    for (var k = 0; k < rest.length && k < free.length; k++) {
+      map[rest[k]] = free[k];
+    }
+  }
+
+  final out = <TocEntry>[];
+  for (final h in (idx['headings'] as List?) ?? const []) {
+    final id = (h['page'] as num?)?.toInt();
+    if (id == null || id < 1 || id > pageMap.length) continue;
+    final at = pageMap[id - 1];
+    final comma = at.lastIndexOf(',');
+    if (comma < 0) continue;
+    final vol = map[at.substring(0, comma)];
+    final page = int.tryParse(at.substring(comma + 1));
+    if (vol == null || page == null) continue;
+    out.add(TocEntry(
+      (h['title'] as String).replaceAll(RegExp(r'<[^>]*>'), '').trim(),
+      (h['level'] as num?)?.toInt() ?? 1,
+      vol,
+      page,
+    ));
+  }
+  return out;
+}
+
+class DownloadCancelled implements Exception {
+  const DownloadCancelled();
 }

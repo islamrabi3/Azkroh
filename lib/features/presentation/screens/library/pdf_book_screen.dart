@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import 'book_toc_sheet.dart';
+
 /// Reads the scanned printed edition of a book. The whole book downloads
 /// once (the volume being read first) and the volumes are joined into one
 /// continuous document, so scrolling past the end of a volume goes straight
@@ -25,6 +27,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   List<BookVolume> _volumes = const [];
   int _vol = 0;
   int _startPage = 1;
+
   /// Page inside the current volume.
   int _page = 1;
 
@@ -122,8 +125,12 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
         _downloading = false;
       });
       _svc.savePosition(widget.book, index, _startPage);
-    } catch (_) {
+    } catch (e) {
       if (!mounted || stamp != _stamp) return;
+      if (e is DownloadCancelled) {
+        if (_ref == null) Navigator.of(context).maybePop();
+        return;
+      }
       setState(() {
         _downloading = false;
         _error = tr('تعذر تحميل الكتاب، تحقق من الاتصال');
@@ -228,44 +235,24 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   Future<void> _toggleMark() async {
     HapticFeedback.selectionClick();
     if (_markedHere) {
-      setState(() =>
-          _marks.removeWhere((m) => m.volume == _vol && m.page == _page));
+      setState(
+          () => _marks.removeWhere((m) => m.volume == _vol && m.page == _page));
       await _svc.saveBookmarks(widget.book, _marks);
       _toast(tr('أزيلت العلامة'));
       return;
     }
-    final c = TextEditingController();
-    final note = await showDialog<String>(
-      context: context,
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: Text(tr('علامة على هذه الصفحة'),
-              style: const TextStyle(fontFamily: 'AppSans')),
-          content: TextField(
-            controller: c,
-            autofocus: true,
-            decoration: InputDecoration(
-                hintText: tr('ملاحظة (اختياري): توقفت عند…')),
-            onSubmitted: (v) => Navigator.pop(ctx, v),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(tr('إلغاء'))),
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, c.text),
-                child: Text(tr('حفظ'))),
-          ],
-        ),
-      ),
+    final note = await _inputSheet(
+      icon: Icons.bookmark_add_rounded,
+      title: tr('علامة على هذه الصفحة'),
+      where: _whereLabel(_vol, _page),
+      hint: tr('ملاحظة (اختياري): توقفت عند…'),
+      action: tr('حفظ العلامة'),
     );
     if (note == null) return;
     setState(() => _marks
       ..add(BookMark(_vol, _page, note.trim(), DateTime.now()))
-      ..sort((a, b) => a.volume != b.volume
-          ? a.volume - b.volume
-          : a.page - b.page));
+      ..sort((a, b) =>
+          a.volume != b.volume ? a.volume - b.volume : a.page - b.page));
     await _svc.saveBookmarks(widget.book, _marks);
     _toast(tr('تم حفظ العلامة'));
   }
@@ -278,8 +265,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           duration: const Duration(seconds: 2)));
   }
 
-  String _volLabel(int i) =>
-      _volumes.length > 1 ? _volumes[i].label : '';
+  String _volLabel(int i) => _volumes.length > 1 ? _volumes[i].label : '';
 
   @override
   Widget build(BuildContext context) {
@@ -319,8 +305,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           backgroundColor: _bg,
           margin: 6,
           maxScale: 8,
-          textSelectionParams:
-              const PdfTextSelectionParams(enabled: false),
+          textSelectionParams: const PdfTextSelectionParams(enabled: false),
           pageDropShadow: const BoxShadow(
               color: Colors.black38, blurRadius: 6, offset: Offset(0, 2)),
           onPageChanged: _onPage,
@@ -400,7 +385,23 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                   ],
                 ),
               ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white70,
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
+              ),
+              onPressed: () {
+                _dl?.cancel();
+                Navigator.of(context).maybePop();
+              },
+              icon: const Icon(Icons.close_rounded, size: 18),
+              label: Text(tr('إيقاف التحميل'),
+                  style: const TextStyle(fontFamily: 'AppSans')),
+            ),
+            const SizedBox(height: 10),
             Text(
                 _volumes.length > 1
                     ? tr('يُحمَّل الكتاب كاملاً مرة واحدة ثم يفتح بدون إنترنت')
@@ -498,12 +499,13 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                     ],
                   ),
                 ),
-                if (_volumes.length > 1)
+                if (_volumes.isNotEmpty &&
+                    (widget.book.isText || _volumes.length > 1))
                   IconButton(
-                    tooltip: tr('الأجزاء'),
-                    icon: const Icon(Icons.library_books_rounded,
+                    tooltip: tr('الفهرس'),
+                    icon: const Icon(Icons.format_list_bulleted_rounded,
                         color: AppStyle.goldColor),
-                    onPressed: _showVolumes,
+                    onPressed: () => _showToc(),
                   ),
                 IconButton(
                   tooltip: tr('العلامات'),
@@ -518,8 +520,8 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                   onPressed: _showMarks,
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert_rounded,
-                      color: Colors.white),
+                  icon:
+                      const Icon(Icons.more_vert_rounded, color: Colors.white),
                   onSelected: (v) async {
                     if (v == 'delete') {
                       await _svc.deleteDownloads(widget.book);
@@ -576,8 +578,8 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                         inactiveColor: Colors.white24,
                         onChanged: (v) => setState(() => _page = v.round()),
                         onChangeEnd: (v) => _controller.goToPage(
-                            pageNumber: _globalOf(_vol, v.round())
-                                .clamp(1, _total),
+                            pageNumber:
+                                _globalOf(_vol, v.round()).clamp(1, _total),
                             duration: Duration.zero),
                       ),
                     ),
@@ -657,7 +659,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   /// "Downloading the book: 12 / 30" while the other volumes arrive.
   Widget _bookProgress(BookDownload dl) {
     return AnimatedBuilder(
-      animation: Listenable.merge([dl.have, dl.progress, dl.failed]),
+      animation: Listenable.merge([dl.have, dl.progress, dl.failed, dl.paused]),
       builder: (_, __) {
         if (dl.complete) return const SizedBox.shrink();
         final n = dl.volumes.length;
@@ -676,9 +678,11 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                       : Colors.white60),
               const SizedBox(width: 8),
               Text(
-                dl.failed.value
-                    ? tr('توقف تحميل الكتاب')
-                    : '${tr('تحميل الكتاب')} ${dl.done} / $n',
+                dl.paused.value
+                    ? '${tr('تم إيقاف التحميل')} ${dl.done} / $n'
+                    : dl.failed.value
+                        ? tr('توقف تحميل الكتاب')
+                        : '${tr('تحميل الكتاب')} ${dl.done} / $n',
                 textDirection: TextDirection.rtl,
                 style: const TextStyle(
                     fontFamily: 'AppSans', color: Colors.white70, fontSize: 12),
@@ -695,11 +699,19 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                   ),
                 ),
               ),
-              if (dl.failed.value)
+              if (dl.failed.value || dl.paused.value)
                 TextButton(
-                  onPressed: dl.retry,
-                  child: Text(tr('إعادة'),
+                  onPressed: dl.resume,
+                  child: Text(dl.paused.value ? tr('استكمال') : tr('إعادة'),
                       style: const TextStyle(color: AppStyle.goldColor)),
+                )
+              else
+                IconButton(
+                  tooltip: tr('إيقاف التحميل'),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: dl.cancel,
+                  icon: const Icon(Icons.close_rounded,
+                      size: 18, color: Colors.white70),
                 ),
             ],
           ),
@@ -709,34 +721,206 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   }
 
   Future<void> _askPage() async {
+    final v = await _inputSheet(
+      icon: Icons.find_in_page_rounded,
+      title: tr('انتقل إلى صفحة'),
+      where: _whereLabel(_vol, _page),
+      hint: _volPages > 0 ? '1 - $_volPages' : tr('رقم الصفحة'),
+      action: tr('انتقال'),
+      number: true,
+    );
+    final pg = int.tryParse(v ?? '');
+    if (pg != null) _goTo(_vol, pg.clamp(1, _volPages > 0 ? _volPages : pg));
+  }
+
+  String _ago(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return tr('الآن');
+    if (d.inHours < 1) return '${tr('منذ')} ${d.inMinutes} ${tr('دقيقة')}';
+    if (d.inDays < 1) return '${tr('منذ')} ${d.inHours} ${tr('ساعة')}';
+    return '${t.year}/${t.month}/${t.day}';
+  }
+
+  String _whereLabel(int vol, int page) => [
+        if (_volumes.length > 1 && vol < _volumes.length) _volumes[vol].label,
+        '${tr('صفحة')} $page',
+      ].join(' · ');
+
+  /// A small input sheet in the app's style (instead of a plain dialog).
+  Future<String?> _inputSheet({
+    required IconData icon,
+    required String title,
+    required String where,
+    required String hint,
+    required String action,
+    bool number = false,
+  }) {
     final c = TextEditingController();
-    final pg = await showDialog<int>(
+    return showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: Text(tr('انتقل إلى صفحة'),
-              style: const TextStyle(fontFamily: 'AppSans')),
-          content: TextField(
-            controller: c,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-                hintText: _volPages > 0 ? '1 - $_volPages' : null),
-            onSubmitted: (v) => Navigator.pop(ctx, int.tryParse(v)),
+        child: Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppStyle.background,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.black12,
+                            borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [
+                              AppStyle.primaryGreen,
+                              AppStyle.darkGreen
+                            ]),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child:
+                              Icon(icon, color: AppStyle.goldColor, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title,
+                                  style: const TextStyle(
+                                      fontFamily: 'AppSans',
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppStyle.textDark)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE3F0EB),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(where,
+                                    style: const TextStyle(
+                                        fontFamily: 'AppSans',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppStyle.primaryGreen)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: c,
+                      autofocus: true,
+                      keyboardType:
+                          number ? TextInputType.number : TextInputType.text,
+                      textAlign: number ? TextAlign.center : TextAlign.start,
+                      style: TextStyle(
+                          fontFamily: 'AppSans',
+                          fontSize: number ? 22 : 15,
+                          fontWeight:
+                              number ? FontWeight.w800 : FontWeight.w500,
+                          color: AppStyle.textDark),
+                      onSubmitted: (v) => Navigator.pop(ctx, v),
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        hintStyle: const TextStyle(
+                            fontFamily: 'AppSans',
+                            color: AppStyle.textLight,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 15),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppStyle.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: AppStyle.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                              color: AppStyle.primaryGreen, width: 1.6),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppStyle.primaryGreen,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.pop(ctx, c.text),
+                            child: Text(action,
+                                style: const TextStyle(
+                                    fontFamily: 'AppSans',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppStyle.textLight,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(tr('إلغاء'),
+                                style: const TextStyle(
+                                    fontFamily: 'AppSans',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(tr('إلغاء'))),
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)),
-                child: Text(tr('انتقال'))),
-          ],
         ),
       ),
     );
-    if (pg != null) _goTo(_vol, pg);
   }
 
   Widget _sheet(String title, Widget child) {
@@ -784,51 +968,23 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     );
   }
 
-  void _showVolumes() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppStyle.background,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) => _sheet(
-        tr('الأجزاء'),
-        ValueListenableBuilder<List<bool>>(
-          valueListenable: _dl?.have ?? ValueNotifier(const []),
-          builder: (_, haveList, __) => ListView.builder(
-            primary: true,
-            itemCount: _volumes.length,
-            itemBuilder: (_, i) {
-              final have = haveList.length > i && haveList[i];
-              final on = i == _vol;
-              return ListTile(
-                selected: on,
-                selectedTileColor: AppStyle.primaryGreen.withOpacity(0.08),
-                leading: CircleAvatar(
-                  backgroundColor:
-                      on ? AppStyle.primaryGreen : const Color(0xFFE7F2EE),
-                  child: Text('${i + 1}',
-                      style: TextStyle(
-                          color: on ? Colors.white : AppStyle.primaryGreen,
-                          fontWeight: FontWeight.w700)),
-                ),
-                title: Text(_volumes[i].label,
-                    style: const TextStyle(
-                        fontFamily: 'AppSans', fontWeight: FontWeight.w700)),
-                trailing: Icon(
-                    have
-                        ? Icons.offline_pin_rounded
-                        : Icons.cloud_download_outlined,
-                    color: have ? AppStyle.primaryGreen : AppStyle.textLight),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (i != _vol) _goTo(i, 1);
-                },
-              );
-            },
-          ),
-        ),
-      ),
+  Future<List<TocEntry>>? _toc;
+
+  void _showToc({bool volumes = false}) {
+    _toc ??= _svc.toc(widget.book, _volumes).catchError((_) {
+      _toc = null;
+      return const <TocEntry>[];
+    });
+    BookTocSheet.show(
+      context,
+      book: widget.book,
+      volumes: _volumes,
+      toc: _toc!,
+      download: _dl,
+      volume: _vol,
+      page: _page,
+      onGo: _goTo,
+      volumesFirst: volumes,
     );
   }
 
@@ -864,31 +1020,55 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                         _volumes[m.volume].label,
                       '${tr('صفحة')} ${m.page}',
                     ].join(' · ');
-                    return ListTile(
-                      leading: const Icon(Icons.bookmark_rounded,
-                          color: AppStyle.goldColor),
-                      title: Text(m.note.isEmpty ? where : m.note,
-                          style: const TextStyle(
-                              fontFamily: 'AppSans',
-                              fontWeight: FontWeight.w700)),
-                      subtitle: m.note.isEmpty
-                          ? null
-                          : Text(where,
-                              style: const TextStyle(fontFamily: 'AppSans')),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded,
-                            color: AppStyle.textLight),
-                        onPressed: () async {
-                          setState(() => _marks.removeAt(i));
-                          setSheet(() {});
-                          await _svc.saveBookmarks(widget.book, _marks);
-                        },
-                      ),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _goTo(m.volume, m.page);
-                      },
-                    );
+                    return Container(
+                        margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppStyle.border),
+                        ),
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBF3DC),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.bookmark_rounded,
+                                color: AppStyle.darkGold),
+                          ),
+                          title: Text(m.note.isEmpty ? where : m.note,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontFamily: 'AppSans',
+                                  fontWeight: FontWeight.w800,
+                                  color: AppStyle.textDark)),
+                          subtitle: Text(
+                              m.note.isEmpty
+                                  ? _ago(m.at)
+                                  : '$where · ${_ago(m.at)}',
+                              style: const TextStyle(
+                                  fontFamily: 'AppSans',
+                                  fontSize: 12,
+                                  color: AppStyle.textLight)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: AppStyle.textLight),
+                            onPressed: () async {
+                              setState(() => _marks.removeAt(i));
+                              setSheet(() {});
+                              await _svc.saveBookmarks(widget.book, _marks);
+                            },
+                          ),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _goTo(m.volume, m.page);
+                          },
+                        ));
                   },
                 ),
         ),
@@ -911,4 +1091,3 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     super.dispose();
   }
 }
-
