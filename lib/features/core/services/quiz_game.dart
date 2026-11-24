@@ -1,3 +1,4 @@
+import '../utils/arabic_text.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -14,10 +15,10 @@ class QuizQuestion {
   const QuizQuestion(this.text, this.options, this.correct, this.explanation);
 
   factory QuizQuestion.fromRow(Map row) => QuizQuestion(
-        row['question'] as String,
-        List<String>.from(row['options'] as List),
+        spellHonorifics(row['question'] as String),
+        List<String>.from(row['options'] as List).map(spellHonorifics).toList(),
         (row['correct'] as num).toInt(),
-        (row['explanation'] ?? '') as String,
+        spellHonorifics((row['explanation'] ?? '') as String),
       );
 }
 

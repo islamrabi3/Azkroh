@@ -4,6 +4,8 @@ import 'package:azkroh_app/features/core/widgets/app_loader.dart';
 import 'package:azkroh_app/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:azkroh_app/features/core/utils/arabic_text.dart';
+import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import 'book_toc_sheet.dart';
@@ -45,7 +47,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   BookDownload? _dl;
   String? _error;
   bool _bars = true;
-  int _turns = 0;
+  bool _landscape = false;
   List<BookMark> _marks = [];
 
   static const _bg = Color(0xFF2A2F2D);
@@ -216,6 +218,21 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     }
   }
 
+  /// Landscape makes the page as wide as the screen, so the text is bigger.
+  Future<void> _toggleOrientation() async {
+    final l = !_landscape;
+    setState(() {
+      _landscape = l;
+      if (l) _bars = false;
+    });
+    await SystemChrome.setPreferredOrientations(l
+        ? const [
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]
+        : const [DeviceOrientation.portraitUp]);
+  }
+
   void _stepVolume(int d) {
     final v = _vol + d;
     if (v < 0 || v >= _volumes.length) return;
@@ -294,8 +311,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     }
     final ref = _ref;
     if (_downloading || ref == null) return _downloadView();
-    return RotatedBox(
-      quarterTurns: _turns,
+    return Container(
       child: PdfViewer(
         ref,
         key: ValueKey('${widget.book.key}-$_stamp'),
@@ -305,13 +321,48 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           backgroundColor: _bg,
           margin: 6,
           maxScale: 8,
-          textSelectionParams: const PdfTextSelectionParams(enabled: false),
+          // Long press selects text (copy / share); a tap shows or hides the
+          // bars, or clears the selection when there is one.
+          textSelectionParams: const PdfTextSelectionParams(),
+          customizeContextMenuItems: (params, items) {
+            items.removeWhere(
+                (i) => i.type == ContextMenuButtonType.selectAll);
+            if (params.textSelectionDelegate.hasSelectedText) {
+              items.add(ContextMenuButtonItem(
+                label: tr('مشاركة'),
+                onPressed: () async {
+                  final t =
+                      await params.textSelectionDelegate.getSelectedText();
+                  await params.textSelectionDelegate.clearTextSelection();
+                  if (!mounted || t.trim().isEmpty) return;
+                  await shareText(context,
+                      '${spellHonorifics(t.trim())}\n\n— ${widget.book.title}');
+                },
+              ));
+            }
+          },
           pageDropShadow: const BoxShadow(
               color: Colors.black38, blurRadius: 6, offset: Offset(0, 2)),
           onPageChanged: _onPage,
+          // After turning the phone, fit the page to the new width so
+          // landscape really shows it bigger.
+          onViewSizeChanged: (size, old, c) {
+            if (old == null || (old.width - size.width).abs() < 1) return;
+            final page = c.pageNumber ?? 1;
+            Future.microtask(() {
+              final m = c.calcMatrixFitWidthForPage(pageNumber: page);
+              if (m != null) c.goTo(m, duration: Duration.zero);
+            });
+          },
           onGeneralTap: (ctx, c, d) {
             if (d.type == PdfViewerGeneralTapType.tap) {
+              if (c.textSelectionDelegate.hasSelectedText) return false;
               setState(() => _bars = !_bars);
+              return true;
+            }
+            // Long press on an empty area: nothing to select, no menu.
+            if (d.type == PdfViewerGeneralTapType.longPress &&
+                d.tapOn == PdfViewerPart.background) {
               return true;
             }
             return false;
@@ -598,8 +649,12 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                         () => _controller.zoomDown()),
                     _barButton(Icons.zoom_in_rounded, tr('تكبير'),
                         () => _controller.zoomUp()),
-                    _barButton(Icons.screen_rotation_alt_rounded, tr('تدوير'),
-                        () => setState(() => _turns = (_turns + 1) % 4)),
+                    _barButton(
+                        _landscape
+                            ? Icons.stay_current_portrait_rounded
+                            : Icons.stay_current_landscape_rounded,
+                        _landscape ? tr('عرض طولي') : tr('عرض بالعرض'),
+                        _toggleOrientation),
                     const Spacer(),
                     if (_volumes.length > 1) ...[
                       _barButton(Icons.skip_next_rounded, tr('الجزء السابق'),
@@ -1078,6 +1133,12 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
 
   @override
   void dispose() {
+    if (_landscape) {
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
     _dl?.have.removeListener(_onDownloaded);
     _svc.savePosition(widget.book, _vol, _page);
     // The joined document is released with the viewer; the volume files it
