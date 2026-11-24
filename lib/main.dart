@@ -94,6 +94,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// A link opened while the app is running.
+  @override
+  Future<bool> didPushRouteInformation(RouteInformation info) async =>
+      _handleLink(info.uri.toString());
+
+  static bool _handleLink(String route) {
+    final uri = Uri.tryParse(route);
+    if (uri == null || !uri.path.endsWith('/book')) return false;
+    NotificationRouter.handle('book:${uri.query}');
+    return true;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state != AppLifecycleState.resumed) return;
@@ -165,7 +177,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 GlobalCupertinoLocalizations.delegate,
               ],
               theme: AppStyle.islamicTheme,
-              home: const ProfessionalSplashScreen(),
+              // The first screen comes from onGenerateInitialRoutes (no
+              // `home`): a shared book link (azkroh://open/book?id=…)
+              // starts the app normally and opens the book once home is
+              // ready.
+              // A shared book link (azkroh://open/book?id=…) opening the app:
+              // start normally and open the book once home is ready.
+              onGenerateRoute: (settings) => settings.name == '/'
+                  ? MaterialPageRoute(
+                      builder: (_) => const ProfessionalSplashScreen())
+                  : null,
+              onGenerateInitialRoutes: (initial) {
+                _handleLink(initial);
+                return [
+                  MaterialPageRoute(
+                      builder: (_) => const ProfessionalSplashScreen()),
+                ];
+              },
               // Light status bar by default (most screens have dark headers);
               // screens like the Mushaf override it with their own region.
               builder: (context, child) =>

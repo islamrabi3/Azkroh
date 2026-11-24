@@ -84,6 +84,19 @@
 		<string>This app needs notification permission to send prayer time reminders and dhikr notifications.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>This app uses audio playback features for Quran recitation and Azan (prayer call). Microphone access is required by the audio player library to ensure proper audio session management.</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>com.islamsalemco.azkroh</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>azkroh</string>
+				</array>
+			</dict>
+		</array>
+		<key>FlutterDeepLinkingEnabled</key>
+		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>

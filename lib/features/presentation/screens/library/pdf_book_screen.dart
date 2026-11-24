@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:azkroh_app/features/core/utils/share_helper.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'book_toc_sheet.dart';
 
@@ -235,23 +236,61 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
         : const [DeviceOrientation.portraitUp]);
   }
 
-  /// Text of the pressed page, selectable, with copy and share.
-  Future<void> _showPageText(int global) async {
-    if (_starts.isEmpty) return;
-    HapticFeedback.mediumImpact();
-    final i = _entryOf(global);
-    final vol = _entries[i], page = global - _starts[i] + 1;
-    final text = _svc.pageText(widget.book, _volumes, vol, page);
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _PageTextSheet(
-        title: widget.book.title,
-        where: _whereLabel(vol, page),
-        text: text,
+  PopupMenuItem<String> _menuItem(String v, IconData icon, String label,
+      {bool danger = false}) {
+    final c = danger ? const Color(0xFFB3423A) : AppStyle.textDark;
+    return PopupMenuItem(
+      value: v,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: danger ? c : AppStyle.primaryGreen),
+            const SizedBox(width: 10),
+            Text(label,
+                style: TextStyle(
+                    fontFamily: 'AppSans',
+                    color: c,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _menu(String v) async {
+    switch (v) {
+      case 'link':
+        // A page that opens the book in the app, or the store without it.
+        final link = BooksService.shareLink(widget.book);
+        await shareText(
+            context,
+            '📖 ${widget.book.title}'
+            '${widget.book.author != null ? ' — ${widget.book.author}' : ''}\n'
+            '${tr('اقرأه في تطبيق أذكروه:')}\n$link');
+        return;
+      case 'file':
+        // The PDF already downloaded for reading; nothing is fetched again.
+        final f = await _svc.volumeFile(widget.book, _vol);
+        if (!f.existsSync() || !mounted) return;
+        await shareFiles(context, [f.path],
+            text: [
+              widget.book.title,
+              if (_volumes.length > 1) _volumes[_vol].label,
+            ].join(' — '));
+        return;
+      case 'save':
+        // Like downloading from a website: the browser saves the PDF to the
+        // phone's Downloads / Files.
+        await launchUrl(Uri.parse(_volumes[_vol].url),
+            mode: LaunchMode.externalApplication);
+        return;
+      case 'delete':
+        _dl?.cancel();
+        await _svc.deleteDownloads(widget.book);
+        if (mounted) Navigator.of(context).maybePop();
+        return;
+    }
   }
 
   void _stepVolume(int d) {
@@ -342,8 +381,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           backgroundColor: _bg,
           margin: 6,
           maxScale: 8,
-          // The scans are images (no text inside); a long press opens the
-          // page's text from Turath instead, to select / copy / share.
+          // The scans are images with no text inside, so nothing to select.
           textSelectionParams: const PdfTextSelectionParams(enabled: false),
           pageDropShadow: const BoxShadow(
               color: Colors.black38, blurRadius: 6, offset: Offset(0, 2)),
@@ -363,14 +401,8 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
               setState(() => _bars = !_bars);
               return true;
             }
-            if (d.type == PdfViewerGeneralTapType.longPress) {
-              final pages = c.layout.pageLayouts;
-              var g = pages.indexWhere((r) => r.contains(d.documentPosition));
-              g = g < 0 ? (c.pageNumber ?? 1) : g + 1;
-              _showPageText(g);
-              return true;
-            }
-            return false;
+            // No text to select: a long press does nothing (no empty menu).
+            return d.type == PdfViewerGeneralTapType.longPress;
           },
           pageOverlaysBuilder: (ctx, rect, page) => [
             if (_isMarked(page.pageNumber))
@@ -578,18 +610,26 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                 PopupMenuButton<String>(
                   icon:
                       const Icon(Icons.more_vert_rounded, color: Colors.white),
-                  onSelected: (v) async {
-                    if (v == 'delete') {
-                      await _svc.deleteDownloads(widget.book);
-                      if (mounted) Navigator.of(context).maybePop();
-                    }
-                  },
+                  onSelected: _menu,
                   itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(tr('حذف الكتاب من الجهاز'),
-                          style: const TextStyle(fontFamily: 'AppSans')),
-                    ),
+                    _menuItem(
+                        'link', Icons.share_rounded, tr('مشاركة رابط الكتاب')),
+                    _menuItem(
+                        'file',
+                        Icons.picture_as_pdf_rounded,
+                        _volumes.length > 1
+                            ? tr('مشاركة ملف PDF لهذا الجزء')
+                            : tr('مشاركة ملف PDF')),
+                    _menuItem(
+                        'save',
+                        Icons.download_rounded,
+                        _volumes.length > 1
+                            ? tr('تحميل هذا الجزء على الجهاز')
+                            : tr('تحميل على الجهاز')),
+                    const PopupMenuDivider(),
+                    _menuItem('delete', Icons.delete_outline_rounded,
+                        tr('حذف الكتاب من التطبيق'),
+                        danger: true),
                   ],
                 ),
               ],
@@ -1155,205 +1195,5 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
       }
     });
     super.dispose();
-  }
-}
-
-class _PageTextSheet extends StatefulWidget {
-  final String title;
-  final String where;
-  final Future<String?> text;
-  const _PageTextSheet(
-      {required this.title, required this.where, required this.text});
-
-  @override
-  State<_PageTextSheet> createState() => _PageTextSheetState();
-}
-
-class _PageTextSheetState extends State<_PageTextSheet> {
-  double _font = 19;
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.72,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (ctx, sc) => Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFFBF8F1),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-          ),
-          child: FutureBuilder<String?>(
-            future: widget.text,
-            builder: (_, snap) {
-              final t = snap.data;
-              final done = snap.connectionState == ConnectionState.done;
-              return Column(
-                children: [
-                  _head(t),
-                  Expanded(
-                    child: !done
-                        ? const Center(child: AppLoader())
-                        : (t == null || t.isEmpty)
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32),
-                                  child: Text(
-                                    tr('لا يوجد نص مكتوب لهذه الصفحة'),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontFamily: 'AppSans',
-                                        color: AppStyle.textLight),
-                                  ),
-                                ),
-                              )
-                            : ListView(
-                                controller: sc,
-                                padding:
-                                    const EdgeInsets.fromLTRB(22, 8, 22, 40),
-                                children: [
-                                  SelectableText(
-                                    t,
-                                    textAlign: TextAlign.justify,
-                                    style: TextStyle(
-                                      fontFamily: 'AppSans',
-                                      fontSize: _font,
-                                      height: 1.9,
-                                      color: AppStyle.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _head(String? t) {
-    final has = t != null && t.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-      child: Column(
-        children: [
-          Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-                color: Colors.black12, borderRadius: BorderRadius.circular(4)),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [AppStyle.primaryGreen, AppStyle.darkGreen]),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(Icons.text_snippet_rounded,
-                    color: AppStyle.goldColor, size: 22),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(tr('نص الصفحة'),
-                        style: const TextStyle(
-                            fontFamily: 'AppSans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppStyle.textDark)),
-                    Text(widget.where,
-                        style: const TextStyle(
-                            fontFamily: 'AppSans',
-                            fontSize: 12,
-                            color: AppStyle.textLight)),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: tr('تصغير الخط'),
-                onPressed: () =>
-                    setState(() => _font = (_font - 2).clamp(14, 32)),
-                icon: const Icon(Icons.text_decrease_rounded,
-                    color: AppStyle.textLight),
-              ),
-              IconButton(
-                tooltip: tr('تكبير الخط'),
-                onPressed: () =>
-                    setState(() => _font = (_font + 2).clamp(14, 32)),
-                icon: const Icon(Icons.text_increase_rounded,
-                    color: AppStyle.textLight),
-              ),
-            ],
-          ),
-          if (has) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppStyle.primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: t));
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(tr('تم نسخ نص الصفحة'),
-                              style: const TextStyle(fontFamily: 'AppSans'))));
-                    },
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    label: Text(tr('نسخ الكل'),
-                        style: const TextStyle(
-                            fontFamily: 'AppSans',
-                            fontWeight: FontWeight.w800)),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppStyle.primaryGreen,
-                      side: const BorderSide(color: AppStyle.border),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () =>
-                        shareText(context, '$t\n\n— ${widget.title}'),
-                    icon: const Icon(Icons.ios_share_rounded, size: 18),
-                    label: Text(tr('مشاركة'),
-                        style: const TextStyle(
-                            fontFamily: 'AppSans',
-                            fontWeight: FontWeight.w800)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(tr('اضغط مطولاً على النص لتحديد جزء منه'),
-                style: const TextStyle(
-                    fontFamily: 'AppSans',
-                    fontSize: 11.5,
-                    color: AppStyle.textLight)),
-          ],
-        ],
-      ),
-    );
   }
 }

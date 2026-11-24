@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../utils/arabic_text.dart';
 import '../widgets/paged_list.dart';
 import 'backend.dart';
 
@@ -240,6 +239,36 @@ class BooksService {
     return out;
   }
 
+  /// Web page for a shared book: shows it, opens the app, or sends to the
+  /// store when the app is missing.
+  static const shareBase = 'https://azkroh-dashboard.onrender.com/book/';
+
+  static Uri shareLink(LibBook b) => Uri.parse(shareBase).replace(
+        queryParameters: {
+          if (b.turathId != null) 'id': '${b.turathId}',
+          if (b.turathId == null && b.pdfUrl != null) 'pdf': b.pdfUrl!,
+          't': b.title,
+        },
+      );
+
+  /// The book a shared link points at (see [shareLink]).
+  Future<LibBook?> bookFromLink(Map<String, String> q) async {
+    final title = q['t'] ?? '';
+    final id = int.tryParse(q['id'] ?? '');
+    if (id != null) {
+      final all = await catalog();
+      for (final b in all) {
+        if (b.turathId == id) return b;
+      }
+      return LibBook(title: title.isEmpty ? 'كتاب' : title, turathId: id);
+    }
+    final pdf = q['pdf'];
+    if (pdf != null && pdf.startsWith('http')) {
+      return LibBook(title: title.isEmpty ? 'كتاب' : title, pdfUrl: pdf);
+    }
+    return null;
+  }
+
   /// Titles and authors matching [query]; big works first.
   Future<List<LibBook>> search(String query) async {
     final words = query
@@ -385,48 +414,6 @@ class BooksService {
     return body;
   }
 
-  /// The text of printed page [page] in PDF volume [volume]. The scans have
-  /// no text inside, so the text comes from Turath's own copy of the book.
-  Future<String?> pageText(
-      LibBook b, List<BookVolume> vols, int volume, int page) async {
-    if (!b.isText) return null;
-    final body = await _indexJson(b);
-    if (body == null) return null;
-    final idx = (jsonDecode(body) as Map)['indexes'] as Map? ?? const {};
-    final textVols = ((idx['volumes'] as List?) ?? const []).cast<String>();
-    final map = _volumeMap(textVols, vols.map((v) => v.label).toList());
-    final printed = (idx['print_pg_to_pg'] as Map?) ?? const {};
-    int? id;
-    for (final e in map.entries) {
-      if (e.value != volume) continue;
-      id = (printed['${e.key},$page'] as num?)?.toInt();
-      if (id != null) break;
-    }
-    if (id == null) return null;
-    final f = File('${(await _bookDir(b)).path}/text_$id.json');
-    String raw;
-    if (f.existsSync()) {
-      raw = await f.readAsString();
-    } else {
-      final res = await http
-          .get(Uri.parse('$_api/page?book_id=${b.turathId}&pg=$id&ver=3'))
-          .timeout(const Duration(seconds: 25));
-      if (res.statusCode != 200) return null;
-      raw = utf8.decode(res.bodyBytes);
-      await f.writeAsString(raw);
-    }
-    final text = (jsonDecode(raw) as Map)['text'] as String? ?? '';
-    return spellHonorifics(text
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .trim());
-  }
-
   Future<File> volumeFile(LibBook b, int index) async =>
       File('${(await _bookDir(b)).path}/v$index.pdf');
 
@@ -476,7 +463,8 @@ class BooksService {
   /// Downloads every volume of [b], one after the other, in the background.
   /// Shared per book, so it keeps going when the reader is closed.
   BookDownload downloadBook(LibBook b, List<BookVolume> vols) {
-    final d = _downloads.putIfAbsent(b.key, () => BookDownload._(this, b, vols));
+    final d =
+        _downloads.putIfAbsent(b.key, () => BookDownload._(this, b, vols));
     d._start();
     return d;
   }
@@ -621,7 +609,6 @@ List<LibBook> _parseCatalog(String body) {
   return out;
 }
 
-
 /// Background download of all the volumes of one book.
 class BookDownload {
   BookDownload._(this._svc, this.book, this.volumes)
@@ -758,7 +745,6 @@ class BookDownload {
   /// Starts again after a failure.
   void retry() => resume();
 }
-
 
 List<TocEntry> _parseToc(List<Object> args) {
   final body = args[0] as String;

@@ -16,3 +16,17 @@ Future<void> shareText(BuildContext context, String text) async {
   }
   await Share.share(text, sharePositionOrigin: origin);
 }
+
+/// Share files (e.g. a book's PDF) through the system share sheet, which
+/// also offers "Save to Files" on iOS.
+Future<void> shareFiles(BuildContext context, List<String> paths,
+    {String? text}) async {
+  final size = MediaQuery.sizeOf(context);
+  final origin = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2), width: 1, height: 1);
+  await Share.shareXFiles(
+    [for (final p in paths) XFile(p, mimeType: 'application/pdf')],
+    text: text,
+    sharePositionOrigin: origin,
+  );
+}

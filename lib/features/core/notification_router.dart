@@ -1,3 +1,5 @@
+import 'package:azkroh_app/features/core/services/books_service.dart';
+import 'package:azkroh_app/features/presentation/screens/library/pdf_book_screen.dart';
 import 'package:azkroh_app/features/presentation/screens/adhan_screen.dart';
 import 'package:azkroh_app/features/presentation/cubit/cubit.dart';
 import 'package:azkroh_app/features/presentation/screens/all_screen/enhanced_hijri_screen.dart';
@@ -66,6 +68,15 @@ class NotificationRouter {
     final nav = navigatorKey.currentState;
     final ctx = navigatorKey.currentContext;
     if (nav == null || ctx == null) return;
+
+    // Shared book link: "book:<query>" (id / pdf / t).
+    if (payload.startsWith('book:')) {
+      final q = Uri.splitQueryString(payload.substring(5));
+      BooksService.instance.bookFromLink(q).then((b) {
+        if (b != null) _push(PdfBookScreen(book: b));
+      });
+      return;
+    }
 
     if (payload.startsWith('mushaf:')) {
       final parts = payload.split(':');
