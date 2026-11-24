@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -300,7 +301,12 @@ class BooksService {
         '${root.split('/').map(Uri.encodeComponent).join('/')}';
     final out = <BookVolume>[];
     final names = [for (final e in files) e.split('|').first];
-    final auto = names.length > 1 ? _volumeLabels(names) : const <String>[];
+    final named = [
+      for (final e in files)
+        e.split('|').length > 1 && e.split('|')[1].trim().isNotEmpty
+    ];
+    final auto =
+        names.length > 1 ? _volumeLabels(names, named) : const <String>[];
     for (final entry in files) {
       final parts = entry.split('|');
       out.add(BookVolume(
@@ -316,7 +322,7 @@ class BooksService {
 
   /// Labels files like "san00.pdf" (cover), "san03.pdf" (volume 3) and
   /// "sansera1.pdf" (an appendix) using the prefix all files share.
-  static List<String> _volumeLabels(List<String> names) {
+  static List<String> _volumeLabels(List<String> names, List<bool> named) {
     var prefix = names.first;
     for (final n in names) {
       while (!n.startsWith(prefix)) {
@@ -336,6 +342,7 @@ class BooksService {
           if (RegExp(r'^\d+$').hasMatch(rest) || rest.isEmpty) {
             return 'الجزء ${i + 1}';
           }
+          if (named[i]) return '';
           extra++;
           return 'ملحق $extra';
         }()
@@ -383,6 +390,16 @@ class BooksService {
     } finally {
       client.close();
     }
+  }
+
+  final Map<String, BookDownload> _downloads = {};
+
+  /// Downloads every volume of [b], one after the other, in the background.
+  /// Shared per book, so it keeps going when the reader is closed.
+  BookDownload downloadBook(LibBook b, List<BookVolume> vols) {
+    final d = _downloads.putIfAbsent(b.key, () => BookDownload._(this, b, vols));
+    d._start();
+    return d;
   }
 
   /// Downloaded books are a cache: past this size the least recently read
@@ -523,4 +540,105 @@ List<LibBook> _parseCatalog(String body) {
     ));
   }
   return out;
+}
+
+
+/// Background download of all the volumes of one book.
+class BookDownload {
+  BookDownload._(this._svc, this.book, this.volumes)
+      : have = ValueNotifier(List<bool>.filled(volumes.length, false));
+
+  final BooksService _svc;
+  final LibBook book;
+  final List<BookVolume> volumes;
+
+  /// Which volumes are on the phone.
+  final ValueNotifier<List<bool>> have;
+
+  /// Volume being downloaded now, and its progress (0..1 or null).
+  final ValueNotifier<int?> active = ValueNotifier(null);
+  final ValueNotifier<double?> progress = ValueNotifier(null);
+  final ValueNotifier<bool> failed = ValueNotifier(false);
+
+  final List<int> _queue = [];
+  final Map<int, List<Completer<void>>> _waiters = {};
+  bool _running = false;
+
+  int get done => have.value.where((h) => h).length;
+  bool get complete => done == volumes.length;
+
+  Future<void> _start() async {
+    if (_running) return;
+    _running = true;
+    failed.value = false;
+    final h = [
+      for (var i = 0; i < volumes.length; i++) await _svc.isDownloaded(book, i)
+    ];
+    have.value = h;
+    for (var i = 0; i < volumes.length; i++) {
+      if (!h[i] && !_queue.contains(i)) _queue.add(i);
+    }
+    _flushWaiters();
+    while (_queue.isNotEmpty) {
+      final i = _queue.removeAt(0);
+      if (have.value[i]) continue;
+      active.value = i;
+      progress.value = null;
+      try {
+        await _svc.download(book, i, volumes[i],
+            onProgress: (p) => progress.value = p);
+        have.value = [...have.value]..[i] = true;
+        _flushWaiters();
+      } catch (e) {
+        failed.value = true;
+        _queue.insert(0, i);
+        for (final l in _waiters.values) {
+          for (final c in l) {
+            if (!c.isCompleted) c.completeError(e);
+          }
+        }
+        _waiters.clear();
+        break;
+      }
+    }
+    active.value = null;
+    _running = false;
+  }
+
+  void _flushWaiters() {
+    for (final i in _waiters.keys.toList()) {
+      if (have.value.length > i && have.value[i]) {
+        for (final c in _waiters.remove(i)!) {
+          if (!c.isCompleted) c.complete();
+        }
+      }
+    }
+  }
+
+  /// Moves volume [i] to the front of the queue and waits until it is on
+  /// the phone.
+  Future<void> waitFor(int i) {
+    prioritizeFrom(i);
+    if (have.value.length > i && have.value[i]) return Future.value();
+    final c = Completer<void>();
+    _waiters.putIfAbsent(i, () => []).add(c);
+    if (!_running) _start();
+    return c.future;
+  }
+
+  /// Download order for reading from volume [i]: [i], the volumes after it,
+  /// then the ones before it.
+  void prioritizeFrom(int i) {
+    final missing = <int>[
+      for (var k = i; k < volumes.length; k++) k,
+      for (var k = 0; k < i; k++) k,
+    ].where((k) => have.value.length <= k || !have.value[k]);
+    _queue
+      ..clear()
+      ..addAll(missing);
+    if (!_running && missing.isNotEmpty) _start();
+  }
+
+  /// Starts again after a failure.
+  void retry() => _start();
 }

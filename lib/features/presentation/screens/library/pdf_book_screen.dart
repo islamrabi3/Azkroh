@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 
-/// Reads the scanned printed edition of a book. Each volume is downloaded
-/// once and then opens offline, on the page where the reader stopped.
+/// Reads the scanned printed edition of a book. The whole book downloads
+/// once (the volume being read first) and the volumes are joined into one
+/// continuous document, so scrolling past the end of a volume goes straight
+/// into the next one.
 class PdfBookScreen extends StatefulWidget {
   final LibBook book;
   const PdfBookScreen({super.key, required this.book});
@@ -23,11 +25,21 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   List<BookVolume> _volumes = const [];
   int _vol = 0;
   int _startPage = 1;
+  /// Page inside the current volume.
   int _page = 1;
-  int _pageCount = 0;
-  String? _path;
-  double? _progress;
+
+  /// The joined document: [_entries] are the volumes it holds, in order, and
+  /// [_starts] the first page (1-based) of each one inside it.
+  PdfDocumentRef? _ref;
+  PdfDocument? _book;
+  List<int> _entries = [];
+  List<int> _starts = [];
+  int _total = 0;
+  int _stamp = 0;
+  final Map<int, PdfDocument> _src = {};
+  bool _appending = false;
   bool _downloading = false;
+  BookDownload? _dl;
   String? _error;
   bool _bars = true;
   int _turns = 0;
@@ -62,30 +74,56 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     await _openVolume(pos[0].clamp(0, _volumes.length - 1), pos[1]);
   }
 
+  /// Opens the book at [index]/[page]: waits for that volume, then joins it
+  /// with the downloaded volumes next to it.
   Future<void> _openVolume(int index, int page) async {
+    final stamp = ++_stamp;
     setState(() {
       _vol = index;
       _startPage = page < 1 ? 1 : page;
       _page = _startPage;
-      _path = null;
+      _ref = null;
       _error = null;
-      _progress = null;
       _downloading = true;
-      _pageCount = 0;
     });
+    final dl = _dl ??= (_svc.downloadBook(widget.book, _volumes)
+      ..have.addListener(_onDownloaded));
     try {
-      final f = await _svc.download(widget.book, index, _volumes[index],
-          onProgress: (p) {
-        if (mounted) setState(() => _progress = p);
-      });
-      if (!mounted) return;
+      await dl.waitFor(index);
+      final have = dl.have.value;
+      var a = index, b = index;
+      while (a > 0 && have[a - 1]) {
+        a--;
+      }
+      while (b < _volumes.length - 1 && have[b + 1]) {
+        b++;
+      }
+      final doc = await PdfDocument.createNew(
+          sourceName: '${widget.book.key}-$a-$stamp');
+      final pages = <PdfPage>[];
+      final entries = <int>[], starts = <int>[];
+      for (var v = a; v <= b; v++) {
+        final src = await _source(v);
+        entries.add(v);
+        starts.add(pages.length + 1);
+        pages.addAll(src.pages);
+      }
+      doc.pages = pages;
+      if (!mounted || stamp != _stamp) {
+        doc.dispose();
+        return;
+      }
       setState(() {
-        _path = f.path;
+        _book = doc;
+        _entries = entries;
+        _starts = starts;
+        _total = pages.length;
+        _ref = PdfDocumentRefDirect(doc);
         _downloading = false;
       });
       _svc.savePosition(widget.book, index, _startPage);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || stamp != _stamp) return;
       setState(() {
         _downloading = false;
         _error = tr('تعذر تحميل الكتاب، تحقق من الاتصال');
@@ -93,21 +131,95 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     }
   }
 
-  void _onPage(int? p) {
-    if (p == null || p == _page) return;
-    setState(() => _page = p);
-    _svc.savePosition(widget.book, _vol, p);
+  Future<PdfDocument> _source(int v) async {
+    final open = _src[v];
+    if (open != null) return open;
+    final f = await _svc.volumeFile(widget.book, v);
+    return _src[v] = await PdfDocument.openFile(f.path);
+  }
+
+  /// A volume right after the joined ones finished downloading: add its
+  /// pages to the end so reading continues without a break.
+  Future<void> _onDownloaded() async {
+    final dl = _dl, book = _book;
+    if (dl == null || book == null || _appending || _entries.isEmpty) return;
+    _appending = true;
+    try {
+      while (mounted && identical(book, _book)) {
+        final next = _entries.last + 1;
+        if (next >= _volumes.length || !dl.have.value[next]) break;
+        final src = await _source(next);
+        if (!mounted || !identical(book, _book)) break;
+        final start = _total + 1;
+        book.pages = [...book.pages, ...src.pages];
+        setState(() {
+          _entries = [..._entries, next];
+          _starts = [..._starts, start];
+          _total += src.pages.length;
+        });
+      }
+    } catch (_) {
+      // Opening the new volume failed; it is added on the next open.
+    } finally {
+      _appending = false;
+    }
+  }
+
+  int _entryOf(int global) {
+    var i = 0;
+    while (i + 1 < _starts.length && _starts[i + 1] <= global) {
+      i++;
+    }
+    return i;
+  }
+
+  int _globalOf(int vol, int page) {
+    final i = _entries.indexOf(vol);
+    if (i < 0) return -1;
+    return _starts[i] + page - 1;
+  }
+
+  /// Pages in the current volume.
+  int get _volPages {
+    final i = _entries.indexOf(_vol);
+    if (i < 0) return 0;
+    final end = i + 1 < _starts.length ? _starts[i + 1] : _total + 1;
+    return end - _starts[i];
+  }
+
+  void _onPage(int? g) {
+    if (g == null || _starts.isEmpty) return;
+    final i = _entryOf(g);
+    final vol = _entries[i];
+    final page = g - _starts[i] + 1;
+    if (vol == _vol && page == _page) return;
+    setState(() {
+      _vol = vol;
+      _page = page;
+    });
+    _svc.savePosition(widget.book, vol, page);
   }
 
   Future<void> _goTo(int vol, int page) async {
-    if (vol != _vol) {
+    final g = _globalOf(vol, page < 1 ? 1 : page);
+    if (g > 0 && _controller.isReady) {
+      await _controller.goToPage(pageNumber: g.clamp(1, _total));
+    } else {
       await _openVolume(vol, page);
-      return;
     }
-    if (_controller.isReady) {
-      await _controller.goToPage(
-          pageNumber: page.clamp(1, _controller.pageCount));
-    }
+  }
+
+  void _stepVolume(int d) {
+    final v = _vol + d;
+    if (v < 0 || v >= _volumes.length) return;
+    _goTo(v, 1);
+  }
+
+  bool _isMarked(int global) {
+    if (_starts.isEmpty) return false;
+    final i = _entryOf(global);
+    final v = _entries[i], p = global - _starts[i] + 1;
+    return _marks.any((m) => m.volume == v && m.page == p);
   }
 
   bool get _markedHere =>
@@ -181,7 +293,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
             children: [
               Positioned.fill(child: _body()),
               Positioned(top: 0, left: 0, right: 0, child: _topBar()),
-              if (_path != null)
+              if (_ref != null)
                 Positioned(bottom: 0, left: 0, right: 0, child: _bottomBar()),
             ],
           ),
@@ -194,15 +306,15 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     if (_error != null) {
       return _message(Icons.wifi_off_rounded, _error!, retry: true);
     }
-    if (_downloading || _path == null) return _downloadView();
-    final path = _path!;
+    final ref = _ref;
+    if (_downloading || ref == null) return _downloadView();
     return RotatedBox(
       quarterTurns: _turns,
-      child: PdfViewer.file(
-        path,
-        key: ValueKey(path),
+      child: PdfViewer(
+        ref,
+        key: ValueKey('${widget.book.key}-$_stamp'),
         controller: _controller,
-        initialPageNumber: _startPage,
+        initialPageNumber: _globalOf(_vol, _startPage).clamp(1, _total),
         params: PdfViewerParams(
           backgroundColor: _bg,
           margin: 6,
@@ -211,9 +323,6 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
               const PdfTextSelectionParams(enabled: false),
           pageDropShadow: const BoxShadow(
               color: Colors.black38, blurRadius: 6, offset: Offset(0, 2)),
-          onViewerReady: (doc, c) {
-            if (mounted) setState(() => _pageCount = c.pageCount);
-          },
           onPageChanged: _onPage,
           onGeneralTap: (ctx, c, d) {
             if (d.type == PdfViewerGeneralTapType.tap) {
@@ -223,8 +332,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
             return false;
           },
           pageOverlaysBuilder: (ctx, rect, page) => [
-            if (_marks.any(
-                (m) => m.volume == _vol && m.page == page.pageNumber))
+            if (_isMarked(page.pageNumber))
               Positioned(
                 top: 0,
                 right: rect.width * 0.06,
@@ -241,7 +349,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   }
 
   Widget _downloadView() {
-    final p = _progress;
+    final dl = _dl;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(36),
@@ -265,25 +373,39 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                       fontFamily: 'AppSans', color: AppStyle.goldColor)),
             ],
             const SizedBox(height: 22),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: p,
-                minHeight: 6,
-                color: AppStyle.goldColor,
-                backgroundColor: Colors.white12,
+            if (dl == null)
+              const AppLoader(color: AppStyle.goldColor)
+            else
+              ValueListenableBuilder<double?>(
+                valueListenable: dl.progress,
+                builder: (_, p, __) => Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: dl.active.value == _vol ? p : null,
+                        minHeight: 6,
+                        color: AppStyle.goldColor,
+                        backgroundColor: Colors.white12,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      dl.active.value == _vol && p != null
+                          ? '${tr('جارٍ التحميل')} ${(p * 100).round()}%'
+                          : tr('جارٍ فتح الكتاب…'),
+                      style: const TextStyle(
+                          fontFamily: 'AppSans', color: Colors.white70),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              p == null
-                  ? tr('جارٍ فتح الكتاب…')
-                  : '${tr('جارٍ التحميل')} ${(p * 100).round()}%',
-              style: const TextStyle(
-                  fontFamily: 'AppSans', color: Colors.white70),
-            ),
             const SizedBox(height: 6),
-            Text(tr('يُحمَّل مرة واحدة ثم يفتح بدون إنترنت'),
+            Text(
+                _volumes.length > 1
+                    ? tr('يُحمَّل الكتاب كاملاً مرة واحدة ثم يفتح بدون إنترنت')
+                    : tr('يُحمَّل مرة واحدة ثم يفتح بدون إنترنت'),
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontFamily: 'AppSans',
                     color: Colors.white38,
@@ -311,7 +433,10 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
               TextButton(
                 onPressed: _volumes.isEmpty
                     ? _init
-                    : () => _openVolume(_vol, _page),
+                    : () {
+                        _dl?.retry();
+                        _openVolume(_vol, _page);
+                      },
                 child: Text(tr('إعادة المحاولة'),
                     style: const TextStyle(color: AppStyle.goldColor)),
               ),
@@ -418,7 +543,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
   }
 
   Widget _bottomBar() {
-    final count = _pageCount;
+    final count = _volPages;
     return AnimatedSlide(
       duration: const Duration(milliseconds: 220),
       offset: _bars ? Offset.zero : const Offset(0, 1.3),
@@ -431,6 +556,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_dl != null && _volumes.length > 1) _bookProgress(_dl!),
                 if (count > 1)
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
@@ -450,7 +576,8 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                         inactiveColor: Colors.white24,
                         onChanged: (v) => setState(() => _page = v.round()),
                         onChangeEnd: (v) => _controller.goToPage(
-                            pageNumber: v.round(),
+                            pageNumber: _globalOf(_vol, v.round())
+                                .clamp(1, _total),
                             duration: Duration.zero),
                       ),
                     ),
@@ -472,6 +599,16 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                     _barButton(Icons.screen_rotation_alt_rounded, tr('تدوير'),
                         () => setState(() => _turns = (_turns + 1) % 4)),
                     const Spacer(),
+                    if (_volumes.length > 1) ...[
+                      _barButton(Icons.skip_next_rounded, tr('الجزء السابق'),
+                          _vol == 0 ? null : () => _stepVolume(-1)),
+                      _barButton(
+                          Icons.skip_previous_rounded,
+                          tr('الجزء التالي'),
+                          _vol >= _volumes.length - 1
+                              ? null
+                              : () => _stepVolume(1)),
+                    ],
                     InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: _askPage,
@@ -502,13 +639,72 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
     );
   }
 
-  Widget _barButton(IconData icon, String tip, VoidCallback onTap,
+  Widget _barButton(IconData icon, String tip, VoidCallback? onTap,
       {bool active = false}) {
     return IconButton(
       tooltip: tip,
       onPressed: onTap,
       icon: Icon(icon,
-          color: active ? AppStyle.goldColor : Colors.white, size: 24),
+          color: onTap == null
+              ? Colors.white24
+              : active
+                  ? AppStyle.goldColor
+                  : Colors.white,
+          size: 24),
+    );
+  }
+
+  /// "Downloading the book: 12 / 30" while the other volumes arrive.
+  Widget _bookProgress(BookDownload dl) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([dl.have, dl.progress, dl.failed]),
+      builder: (_, __) {
+        if (dl.complete) return const SizedBox.shrink();
+        final n = dl.volumes.length;
+        final frac = (dl.done + (dl.progress.value ?? 0)) / n;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+          child: Row(
+            children: [
+              Icon(
+                  dl.failed.value
+                      ? Icons.error_outline_rounded
+                      : Icons.cloud_download_outlined,
+                  size: 16,
+                  color: dl.failed.value
+                      ? const Color(0xFFE57373)
+                      : Colors.white60),
+              const SizedBox(width: 8),
+              Text(
+                dl.failed.value
+                    ? tr('توقف تحميل الكتاب')
+                    : '${tr('تحميل الكتاب')} ${dl.done} / $n',
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(
+                    fontFamily: 'AppSans', color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: frac.clamp(0, 1).toDouble(),
+                    minHeight: 3,
+                    color: AppStyle.goldColor,
+                    backgroundColor: Colors.white12,
+                  ),
+                ),
+              ),
+              if (dl.failed.value)
+                TextButton(
+                  onPressed: dl.retry,
+                  child: Text(tr('إعادة'),
+                      style: const TextStyle(color: AppStyle.goldColor)),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -526,7 +722,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
             autofocus: true,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-                hintText: _pageCount > 0 ? '1 - $_pageCount' : null),
+                hintText: _volPages > 0 ? '1 - $_volPages' : null),
             onSubmitted: (v) => Navigator.pop(ctx, int.tryParse(v)),
           ),
           actions: [
@@ -597,16 +793,13 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => _sheet(
         tr('الأجزاء'),
-        FutureBuilder<List<bool>>(
-          future: Future.wait([
-            for (var i = 0; i < _volumes.length; i++)
-              _svc.isDownloaded(widget.book, i)
-          ]),
-          builder: (_, snap) => ListView.builder(
+        ValueListenableBuilder<List<bool>>(
+          valueListenable: _dl?.have ?? ValueNotifier(const []),
+          builder: (_, haveList, __) => ListView.builder(
             primary: true,
             itemCount: _volumes.length,
             itemBuilder: (_, i) {
-              final have = snap.data != null && snap.data![i];
+              final have = haveList.length > i && haveList[i];
               final on = i == _vol;
               return ListTile(
                 selected: on,
@@ -629,7 +822,7 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
                     color: have ? AppStyle.primaryGreen : AppStyle.textLight),
                 onTap: () {
                   Navigator.pop(ctx);
-                  if (i != _vol) _openVolume(i, 1);
+                  if (i != _vol) _goTo(i, 1);
                 },
               );
             },
@@ -705,11 +898,16 @@ class _PdfBookScreenState extends State<PdfBookScreen> {
 
   @override
   void dispose() {
-    // Keep the exact spot even if the last page change was not reported.
-    final p = _controller.isReady ? _controller.pageNumber : null;
-    if (p != null && _path != null) {
-      _svc.savePosition(widget.book, _vol, p);
-    }
+    _dl?.have.removeListener(_onDownloaded);
+    _svc.savePosition(widget.book, _vol, _page);
+    // The joined document is released with the viewer; the volume files it
+    // borrows pages from are closed after it.
+    final src = _src.values.toList();
+    Future.delayed(const Duration(seconds: 2), () {
+      for (final d in src) {
+        d.dispose();
+      }
+    });
     super.dispose();
   }
 }
