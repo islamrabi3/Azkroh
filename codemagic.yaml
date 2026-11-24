@@ -248,7 +248,13 @@ workflows:
       - *ios_signing_files
       - name: Shorebird patch (Android + iOS)
         script: |
+          # patch-1.1.5+27 (or a re-run on release-1.1.5+27) -> 1.1.5+27;
+          # started without a tag -> the version in pubspec.yaml.
           RELEASE_VERSION="${CM_TAG#patch-}"
+          RELEASE_VERSION="${RELEASE_VERSION#release-}"
+          if [ -z "$RELEASE_VERSION" ]; then
+            RELEASE_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          fi
           echo "Patching release $RELEASE_VERSION"
           # CI can't answer Shorebird's prompts, so asset/native diffs are
           # allowed here. Patches only ever ship Dart code: before tagging a
