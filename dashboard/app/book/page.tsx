@@ -64,7 +64,7 @@ export default function SharedBook() {
 const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh", width: "100%", boxSizing: "border-box", overflowX: "hidden",
-    display: "grid", placeItems: "center", padding: 16,
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     background: "linear-gradient(180deg,#06261f 0%,#0f5c4a 55%,#f6f4ee 55%)",
     fontFamily: "system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif",
   },
