@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/arabic_text.dart';
 import '../widgets/paged_list.dart';
 import 'backend.dart';
 
@@ -367,19 +368,63 @@ class BooksService {
   /// volume names are matched to the PDF files.
   Future<List<TocEntry>> toc(LibBook b, List<BookVolume> vols) async {
     if (!b.isText || vols.isEmpty) return const [];
+    final body = await _indexJson(b);
+    if (body == null) return const [];
+    return compute(_parseToc, [body, vols.map((v) => v.label).toList()]);
+  }
+
+  Future<String?> _indexJson(LibBook b) async {
     final f = File('${(await _bookDir(b)).path}/index.json');
-    String? body;
+    if (f.existsSync()) return f.readAsString();
+    final res = await http
+        .get(Uri.parse('$_api/book?id=${b.turathId}&include=indexes&ver=3'))
+        .timeout(const Duration(seconds: 30));
+    if (res.statusCode != 200) return null;
+    final body = utf8.decode(res.bodyBytes);
+    await f.writeAsString(body);
+    return body;
+  }
+
+  /// The text of printed page [page] in PDF volume [volume]. The scans have
+  /// no text inside, so the text comes from Turath's own copy of the book.
+  Future<String?> pageText(
+      LibBook b, List<BookVolume> vols, int volume, int page) async {
+    if (!b.isText) return null;
+    final body = await _indexJson(b);
+    if (body == null) return null;
+    final idx = (jsonDecode(body) as Map)['indexes'] as Map? ?? const {};
+    final textVols = ((idx['volumes'] as List?) ?? const []).cast<String>();
+    final map = _volumeMap(textVols, vols.map((v) => v.label).toList());
+    final printed = (idx['print_pg_to_pg'] as Map?) ?? const {};
+    int? id;
+    for (final e in map.entries) {
+      if (e.value != volume) continue;
+      id = (printed['${e.key},$page'] as num?)?.toInt();
+      if (id != null) break;
+    }
+    if (id == null) return null;
+    final f = File('${(await _bookDir(b)).path}/text_$id.json');
+    String raw;
     if (f.existsSync()) {
-      body = await f.readAsString();
+      raw = await f.readAsString();
     } else {
       final res = await http
-          .get(Uri.parse('$_api/book?id=${b.turathId}&include=indexes&ver=3'))
-          .timeout(const Duration(seconds: 30));
-      if (res.statusCode != 200) return const [];
-      body = utf8.decode(res.bodyBytes);
-      await f.writeAsString(body);
+          .get(Uri.parse('$_api/page?book_id=${b.turathId}&pg=$id&ver=3'))
+          .timeout(const Duration(seconds: 25));
+      if (res.statusCode != 200) return null;
+      raw = utf8.decode(res.bodyBytes);
+      await f.writeAsString(raw);
     }
-    return compute(_parseToc, [body, vols.map((v) => v.label).toList()]);
+    final text = (jsonDecode(raw) as Map)['text'] as String? ?? '';
+    return spellHonorifics(text
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .trim());
   }
 
   Future<File> volumeFile(LibBook b, int index) async =>
@@ -723,39 +768,7 @@ List<TocEntry> _parseToc(List<Object> args) {
   final pageMap = ((idx['page_map'] as List?) ?? const []).cast<String>();
   final textVols = ((idx['volumes'] as List?) ?? const []).cast<String>();
 
-  // Turath volume name -> PDF file index.
-  final map = <String, int>{};
-  if (labels.length == 1) {
-    for (final v in textVols) {
-      map[v] = 0;
-    }
-  } else {
-    final used = <int>{};
-    final rest = <String>[];
-    for (final v in textVols) {
-      final n = int.tryParse(v.trim());
-      var i = labels.indexOf(n != null ? 'الجزء $n' : v.trim());
-      if (i < 0 && n == null) i = labels.indexOf(v.trim());
-      if (i >= 0 && !used.contains(i)) {
-        map[v] = i;
-        used.add(i);
-      } else {
-        rest.add(v);
-      }
-    }
-    // Remaining names (e.g. appendices) take the remaining non-volume files
-    // in order.
-    final free = [
-      for (var i = 0; i < labels.length; i++)
-        if (!used.contains(i) &&
-            labels[i] != 'الغلاف' &&
-            !labels[i].startsWith('الجزء '))
-          i
-    ];
-    for (var k = 0; k < rest.length && k < free.length; k++) {
-      map[rest[k]] = free[k];
-    }
-  }
+  final map = _volumeMap(textVols, labels);
 
   final out = <TocEntry>[];
   for (final h in (idx['headings'] as List?) ?? const []) {
@@ -779,4 +792,40 @@ List<TocEntry> _parseToc(List<Object> args) {
 
 class DownloadCancelled implements Exception {
   const DownloadCancelled();
+}
+
+/// Turath volume name -> PDF file index ("1" -> «الجزء 1», «المقدمة» ->
+/// «المقدمة»; the rest take the remaining appendix files in order).
+Map<String, int> _volumeMap(List<String> textVols, List<String> labels) {
+  final map = <String, int>{};
+  if (labels.length == 1) {
+    for (final v in textVols) {
+      map[v] = 0;
+    }
+    return map;
+  }
+  final used = <int>{};
+  final rest = <String>[];
+  for (final v in textVols) {
+    final n = int.tryParse(v.trim());
+    var i = labels.indexOf(n != null ? 'الجزء $n' : v.trim());
+    if (i < 0 && n == null) i = labels.indexOf(v.trim());
+    if (i >= 0 && !used.contains(i)) {
+      map[v] = i;
+      used.add(i);
+    } else {
+      rest.add(v);
+    }
+  }
+  final free = [
+    for (var i = 0; i < labels.length; i++)
+      if (!used.contains(i) &&
+          labels[i] != 'الغلاف' &&
+          !labels[i].startsWith('الجزء '))
+        i
+  ];
+  for (var k = 0; k < rest.length && k < free.length; k++) {
+    map[rest[k]] = free[k];
+  }
+  return map;
 }

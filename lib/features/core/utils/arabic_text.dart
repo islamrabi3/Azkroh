@@ -31,6 +31,6 @@ String spellHonorifics(String s) {
   return s
       .replaceAllMapped(_honorificRe, (m) => ' ${_honorifics[m[0]] ?? ''} ')
       .replaceAll(RegExp(' {2,}'), ' ')
-      .replaceAll(RegExp(r' ([،.؛:)\]»])'), r'$1')
+      .replaceAllMapped(RegExp(r' ([،.؛:)\]»])'), (m) => m[1]!)
       .trim();
 }
