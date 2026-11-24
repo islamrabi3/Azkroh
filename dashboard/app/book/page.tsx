@@ -9,17 +9,29 @@ const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.islamsalem
  * Landing page for a book shared from the app:
  *   /book/?id=12028&t=صيد الخاطر   (Turath book)
  *   /book/?pdf=https://…&t=…       (PDF link)
- * "Open in the app" uses azkroh://open/book?…; on Android an intent:// link
- * falls back to Google Play when the app is missing.
+ * With the app installed the phone opens this link in the app directly
+ * (Universal Links / App Links), so this page is only reached without the
+ * app: phones go straight to their store; computers see the buttons.
  */
 export default function SharedBook() {
   const [q, setQ] = useState<URLSearchParams | null>(null);
   const [os, setOs] = useState<"ios" | "android" | "other">("other");
 
   useEffect(() => {
-    setQ(new URLSearchParams(window.location.search));
+    const params = new URLSearchParams(window.location.search);
+    setQ(params);
     const ua = navigator.userAgent;
-    setOs(/android/i.test(ua) ? "android" : /iphone|ipad|ipod/i.test(ua) ? "ios" : "other");
+    const kind = /android/i.test(ua) ? "android" : /iphone|ipad|ipod/i.test(ua) ? "ios" : "other";
+    setOs(kind);
+    if (kind === "android") {
+      // Opens the app if it is there, otherwise Google Play.
+      window.location.replace(
+        `intent://open/book?${params.toString()}#Intent;scheme=azkroh;package=com.islamsalemco.azkroh;` +
+          `S.browser_fallback_url=${encodeURIComponent(PLAY_STORE)};end`,
+      );
+    } else if (kind === "ios") {
+      window.location.replace(APP_STORE);
+    }
   }, []);
 
   const title = q?.get("t") || "كتاب";
@@ -43,7 +55,9 @@ export default function SharedBook() {
           </div>
         </div>
         <p style={s.text}>
-          اقرأ النسخة المصورة من الطبعة الورقية داخل التطبيق، مع الفهرس والعلامات والقراءة بدون إنترنت.
+          {os === "other"
+            ? "اقرأ النسخة المصورة من الطبعة الورقية داخل التطبيق، مع الفهرس والعلامات والقراءة بدون إنترنت."
+            : "جارٍ تحويلك إلى المتجر لتحميل التطبيق…"}
         </p>
 
         {q && (

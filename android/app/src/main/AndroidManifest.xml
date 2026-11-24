@@ -83,6 +83,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Shared book links (App Links): open the book directly when the
+                 app is installed; the web page sends to Google Play otherwise. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="azkroh-dashboard.onrender.com"
+                    android:pathPrefix="/book" />
+            </intent-filter>
             <!-- Shared book links: azkroh://open/book?id=… -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

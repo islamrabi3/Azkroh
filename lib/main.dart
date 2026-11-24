@@ -101,7 +101,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   static bool _handleLink(String route) {
     final uri = Uri.tryParse(route);
-    if (uri == null || !uri.path.endsWith('/book')) return false;
+    // azkroh://open/book?… -> "/book?…"; https://…/book/?… -> "/book/?…".
+    final path = uri?.path.replaceAll(RegExp(r'/+$'), '') ?? '';
+    if (uri == null || !path.endsWith('/book')) return false;
     NotificationRouter.handle('book:${uri.query}');
     return true;
   }

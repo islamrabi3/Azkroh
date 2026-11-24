@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.islamsalemco.azkroh",
+      "sha256_cert_fingerprints": [
+        "41:61:EE:AD:57:C1:11:D4:B5:44:A2:6B:A5:97:39:79:DF:38:17:F0:06:6F:10:90:50:F9:1C:14:B7:A8:F9:35"
+      ]
+    }
+  }
+]
