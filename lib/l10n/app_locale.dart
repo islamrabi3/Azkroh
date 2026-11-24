@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'library_strings.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:qcf_quran_plus/qcf_quran_plus.dart' as qcf;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,9 +85,12 @@ class AppLocale {
   static Future<Map<String, String>> _read(String c) async {
     try {
       final raw = await rootBundle.loadString('assets/l10n/$c.json');
-      return Map<String, String>.from(jsonDecode(raw) as Map);
+      return {
+        ...?libraryStrings[c],
+        ...Map<String, String>.from(jsonDecode(raw) as Map),
+      };
     } catch (_) {
-      return const {};
+      return libraryStrings[c] ?? const {};
     }
   }
 

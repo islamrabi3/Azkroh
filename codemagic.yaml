@@ -250,6 +250,13 @@ workflows:
         script: |
           RELEASE_VERSION="${CM_TAG#patch-}"
           echo "Patching release $RELEASE_VERSION"
-          shorebird patch android --release-version="$RELEASE_VERSION" --track=stable
+          # CI can't answer Shorebird's prompts, so asset/native diffs are
+          # allowed here. Patches only ever ship Dart code: before tagging a
+          # patch make sure no native code changed since the release (plist
+          # / manifest metadata is fine) and that new UI strings also exist
+          # in Dart (lib/l10n/library_strings.dart), since assets don't ship.
+          shorebird patch android --release-version="$RELEASE_VERSION" --track=stable \
+            --allow-asset-diffs --allow-native-diffs
           shorebird patch ios --release-version="$RELEASE_VERSION" --track=stable \
+            --allow-asset-diffs --allow-native-diffs \
             --export-options-plist=/Users/builder/export_options.plist
