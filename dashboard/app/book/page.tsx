@@ -63,12 +63,13 @@ export default function SharedBook() {
 
 const s: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh", display: "grid", placeItems: "center", padding: 16,
+    minHeight: "100vh", width: "100%", boxSizing: "border-box", overflowX: "hidden",
+    display: "grid", placeItems: "center", padding: 16,
     background: "linear-gradient(180deg,#06261f 0%,#0f5c4a 55%,#f6f4ee 55%)",
     fontFamily: "system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif",
   },
   card: {
-    width: "100%", maxWidth: 420, background: "#fff", borderRadius: 28, padding: "28px 22px",
+    width: "100%", maxWidth: 420, boxSizing: "border-box", background: "#fff", borderRadius: 28, padding: "28px 22px",
     textAlign: "center", boxShadow: "0 20px 50px rgba(6,38,31,.25)",
   },
   logo: { width: 64, height: 64, borderRadius: 16, marginBottom: 10 },
@@ -92,7 +93,7 @@ const s: Record<string, React.CSSProperties> = {
   or: { color: "#6b7772", fontSize: 13, margin: "18px 0 10px" },
   stores: { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" },
   store: {
-    flex: "1 1 140px", border: "1px solid #e6e1d3", borderRadius: 14, padding: "12px 10px",
+    flex: "1 1 140px", boxSizing: "border-box", border: "1px solid #e6e1d3", borderRadius: 14, padding: "12px 10px",
     color: "#1c2b27", textDecoration: "none", fontWeight: 700, background: "#faf6ec",
   },
   hint: { color: "#8a948f", fontSize: 12, marginTop: 14, lineHeight: 1.7 },
