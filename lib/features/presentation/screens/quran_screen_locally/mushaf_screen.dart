@@ -218,6 +218,7 @@ class _MushafScreenState extends State<MushafScreen> {
     }
     qcf.QcfFontLoader.preloadPages(_page, radius: 3);
     _saveLastRead(_page);
+    _settledPage = _page;
     if (!(prefs.getBool(_prefGuideSeen) ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) =>
           Future.delayed(const Duration(milliseconds: 700), _startGuide));
@@ -365,10 +366,38 @@ class _MushafScreenState extends State<MushafScreen> {
     await prefs.setInt('lastReadVerse', _firstVerse(page));
   }
 
+  /// Page whose follow-up work (rebuild, font preload, save) already ran.
+  int? _settledPage;
+
+  // Called by the PageView halfway through a swipe, while the page is still
+  // animating. Only record the page here: the rebuild, the font preloading
+  // and the prefs write all run on the UI thread and made the swipe stutter,
+  // so they wait for the scroll to stop (_onPagesSettled).
   void _onPageChanged(int pageNumber) {
     _page = pageNumber;
-    qcf.QcfFontLoader.preloadPages(pageNumber, radius: 3);
+    if (_controller.hasClients &&
+        !_controller.position.isScrollingNotifier.value) {
+      _onPagesSettled();
+    }
+  }
+
+  bool _onPagerScroll(ScrollNotification n) {
+    // depth 0 = the PageView itself, not a scrollable inside a page.
+    if (n.depth == 0 && n is ScrollEndNotification) _onPagesSettled();
+    return false;
+  }
+
+  void _onPagesSettled() {
+    final pageNumber = _page;
+    if (!mounted || _settledPage == pageNumber) return;
+    _settledPage = pageNumber;
     _saveLastRead(pageNumber);
+    // Let the settle frame finish before the font work starts.
+    Future<void>.delayed(const Duration(milliseconds: 120), () {
+      if (_page == pageNumber) {
+        qcf.QcfFontLoader.preloadPages(pageNumber, radius: 3);
+      }
+    });
     setState(() {
       // Selection belongs to a page; drop it when leaving that page.
       if (_selSurah != null &&
@@ -1315,7 +1344,10 @@ class _MushafScreenState extends State<MushafScreen> {
                                               bodyColor: p.text,
                                               displayColor: p.text),
                                     ),
-                                    child: qcf.QuranPageView(
+                                    child: NotificationListener<
+                                        ScrollNotification>(
+                                      onNotification: _onPagerScroll,
+                                      child: qcf.QuranPageView(
                                       pageController: _controller,
                                       highlights: _highlights,
                                       isDarkMode: _dark,
@@ -1327,7 +1359,7 @@ class _MushafScreenState extends State<MushafScreen> {
                                       pageHeaderBuilder: _pageHeader,
                                       onVerseTap: (s, v) => _onBackgroundTap(),
                                       onLongPress: (s, v, _) => _select(s, v),
-                                    )),
+                                    ))),
                               )),
                               // Invisible target for the "tap a verse" step.
                               Center(
